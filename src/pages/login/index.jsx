@@ -1,8 +1,8 @@
-// src/pages/login/index.jsx
+// src/@/@/@/@/pages/login/index.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import Icon from '../../components/AppIcon';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
 
 const roleHome = (role) => {
   switch (role) {
@@ -78,29 +78,7 @@ const Login = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo de Usuario *</label>
-              <div className="relative">
-                <select
-                  className="w-full appearance-none px-3 py-2 pr-8 rounded-md border border-border bg-input focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={userType}
-                  onChange={(e) => setUserType(e?.target?.value)}
-                >
-                  <option value="patient">Paciente</option>
-                  <option value="doctor">Médico</option>
-                  <option value="specialist">Especialista</option>
-                  <option value="clinic">Clínica</option>
-                  <option value="clinic_admin">Administrador de Clínica</option>
-                  <option value="provider">Proveedor</option>
-                </select>
-                <Icon
-                  name="ChevronDown"
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                />
-              </div>
-            </div>
-
+           
             <Button type="submit" variant="default" className="w-full py-3">
               Iniciar Sesión
             </Button>

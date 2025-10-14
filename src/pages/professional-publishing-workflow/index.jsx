@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Icon from "../../components/AppIcon";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { getBusinessContext } from "../../utils/mockData";
 
 // Step Components

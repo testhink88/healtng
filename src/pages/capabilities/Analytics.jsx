@@ -1,8 +1,8 @@
-import React from "react";
-import Header from "../../components/ui/Header";
-import Sidebar from "../../components/ui/Sidebar";
-import Icon from "../../components/AppIcon";
-import Button from "../../components/ui/Button";
+﻿import React from "react";
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 import { useState } from "react";
 import { getAnalytics, getProducts, getB2BOrders } from "../../utils/mockData";
 

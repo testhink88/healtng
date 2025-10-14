@@ -2,18 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // ---- (flujo paciente - originales) ----
-import DoctorSummary from './components/DoctorSummary';
-import CalendarWidget from './components/CalendarWidget';
-import BookingForm from './components/BookingForm';
-import InsuranceVerification from './components/InsuranceVerification';
-import BookingConfirmation from './components/BookingConfirmation';
+import DoctorSummary from '@/pages/appointment-booking/components/DoctorSummary';
+import CalendarWidget from '@/pages/appointment-booking/components/CalendarWidget';
+import BookingForm from '@/pages/appointment-booking/components/BookingForm';
+import InsuranceVerification from '@/pages/appointment-booking/components/InsuranceVerification';
+import BookingConfirmation from '@/pages/appointment-booking/components/BookingConfirmation';
 
 // ---- (chrome de app) ----
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+
 
 // util
 const todayISO = () => new Date().toISOString().slice(0, 10);

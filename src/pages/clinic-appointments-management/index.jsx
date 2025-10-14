@@ -1,11 +1,11 @@
-// src/pages/clinic-appointments-management/index.jsx
+// src/@/@/@/@/pages/clinic-appointments-management/index.jsx
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Icon from '../../components/AppIcon';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
 
 const StatCard = ({ label, value, icon, tone = 'default' }) => {
   const toneMap = {

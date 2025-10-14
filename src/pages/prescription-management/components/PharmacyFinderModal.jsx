@@ -1,7 +1,7 @@
 // src/pages/prescription-management/components/PharmacyFinderModal.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import Icon from "../../../components/AppIcon";
-import Button from "../../../components/ui/Button";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
 /* =================== CARGADOR DINÁMICO GOOGLE MAPS =================== */
 let gmapsPromise = null;

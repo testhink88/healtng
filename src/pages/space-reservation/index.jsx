@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import SpaceFilters from './components/SpaceFilters';
-import SpaceCard from './components/SpaceCard';
-import CalendarView from './components/CalendarView';
-import BookingModal from './components/BookingModal';
-import SpaceDetailsModal from './components/SpaceDetailsModal';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+
+import SpaceFilters from "@/pages/space-reservation/components/SpaceFilters";
+import SpaceCard from "@/pages/clinic-spaces-management/components/SpaceCard";
+import CalendarView from "@/pages/space-reservation/components/CalendarView"; // 🔥 corregido
+import BookingModal from "@/pages/space-reservation/components/BookingModal"; // 🔥 corregido
+import SpaceDetailsModal from "@/pages/space-reservation/components/SpaceDetailsModal"; // 🔥 corregido
+
 
 const SpaceReservation = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

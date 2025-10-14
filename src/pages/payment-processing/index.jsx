@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
 
-// Import components
-import PaymentMethodSelector from './components/PaymentMethodSelector';
-import CreditCardForm from './components/CreditCardForm';
-import PagoMovilForm from './components/PagoMovilForm';
-import OrderSummary from './components/OrderSummary';
-import SecurityTrustSignals from './components/SecurityTrustSignals';
-import PaymentProgress from './components/PaymentProgress';
+// Import components (corregidos)
+import PaymentMethodSelector from '@/pages/payment-processing/components/PaymentMethodSelector';
+import CreditCardForm from '@/pages/payment-processing/components/CreditCardForm';
+import PagoMovilForm from '@/pages/payment-processing/components/PagoMovilForm';
+import OrderSummary from '@/pages/payment-processing/components/OrderSummary';
+import SecurityTrustSignals from '@/pages/payment-processing/components/SecurityTrustSignals';
+import PaymentProgress from '@/pages/payment-processing/components/PaymentProgress';
+
 
 const PaymentProcessing = () => {
   const navigate = useNavigate();

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import GlobalSearch from '../../components/ui/GlobalSearch';
-import HealthGreeting from './components/HealthGreeting';
-import QuickActionsGrid from './components/QuickActionsGrid';
-import NextAppointment from './components/NextAppointment';
-import RecentExams from './components/RecentExams';
-import HealthProfileSummary from './components/HealthProfileSummary';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import GlobalSearch from '@/components/ui/GlobalSearch';
+
+import HealthGreeting from '@/pages/patient-dashboard/components/HealthGreeting';
+import QuickActionsGrid from '@/pages/patient-dashboard/components/QuickActionsGrid';
+import NextAppointment from '@/pages/patient-dashboard/components/NextAppointment';
+import RecentExams from '@/pages/patient-dashboard/components/RecentExams';
+import HealthProfileSummary from '@/pages/patient-dashboard/components/HealthProfileSummary';
 
 const PatientDashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

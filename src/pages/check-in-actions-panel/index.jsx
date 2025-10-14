@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import PatientContext from './components/PatientContext';
-import QuickActionsGrid from './components/QuickActionsGrid';
-import AppointmentStatus from './components/AppointmentStatus';
-import ProgressTracker from './components/ProgressTracker';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import PatientContext from '@/pages/check-in-actions-panel/components/PatientContext';
+import QuickActionsGrid from '@/pages/check-in-actions-panel/components/QuickActionsGrid';
+import AppointmentStatus from '@/pages/check-in-actions-panel/components/AppointmentStatus';
+import ProgressTracker from '@/pages/check-in-actions-panel/components/ProgressTracker';
 
 const CheckInActionsPanel = () => {
   const location = useLocation();

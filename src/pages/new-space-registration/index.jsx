@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
-import { Checkbox } from '../../components/ui/Checkbox';
-import Icon from '../../components/AppIcon';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import { Checkbox } from '@/components/ui/Checkbox';
+import Icon from '@/components/AppIcon';
 import { spaceTypes, amenitiesList } from '../../utils/spaces';
 
 const NewSpaceRegistration = () => {

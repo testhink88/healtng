@@ -1,82 +1,79 @@
-// src/Routes.jsx
-import React from "react";
+﻿import React from "react";
 import { BrowserRouter, Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
 
-import ScrollToTop from "components/ScrollToTop";
-import ErrorBoundary from "components/ErrorBoundary";
-import NotFound from "pages/NotFound";
+import ScrollToTop from "@/components/ScrollToTop"; // Corregido: Removed extra slashes
+import ErrorBoundary from "@/components/ErrorBoundary"; // Corregido: Removed extra slashes
+import NotFound from "@/pages/NotFound"; // Corregido: Removed extra slashes
 import RoleGuard from "./utils/RoleGuard";
 
 // Páginas base
-import AppointmentBooking from "./pages/appointment-booking";
-import PatientDashboard from "./pages/patient-dashboard";
-import Login from "./pages/login";
-import SpaceReservation from "./pages/space-reservation";
-import ProfessionalDashboard from "./pages/professional-dashboard";
-import PrescriptionManagement from "./pages/prescription-management";
-import MedicalHistory from "./pages/medical-history";
-import DoctorDiscovery from "./pages/doctor-discovery";
-import PaymentProcessing from "./pages/payment-processing";
-import NewPrescriptionForm from "./pages/new-prescription-form";
-import NewDiagnosisForm from "./pages/new-diagnosis-form";
-import NewReferralForm from "./pages/new-referral-form";
-import PatientList from "./pages/patient-list";
-import PatientProfile from "./pages/patient-profile";
-import CheckInActionsPanel from "./pages/check-in-actions-panel";
+import AppointmentBooking from "@/pages/appointment-booking"; // Corregido: Removed extra slashes
+import PatientDashboard from "@/pages/patient-dashboard"; // Corregido: Removed extra slashes
+import Login from "@/pages/login"; // Corregido: Removed extra slashes
+import SpaceReservation from "@/pages/space-reservation"; // Corregido: Removed extra slashes
+import ProfessionalDashboard from "@/pages/professional-dashboard"; // Corregido: Removed extra slashes
+import PrescriptionManagement from "@/pages/prescription-management"; // Corregido: Removed extra slashes
+import MedicalHistory from "@/pages/medical-history"; // Corregido: Removed extra slashes
+import DoctorDiscovery from "@/pages/doctor-discovery"; // Corregido: Removed extra slashes
+import PaymentProcessing from "@/pages/payment-processing"; // Corregido: Removed extra slashes
+import NewPrescriptionForm from "@/pages/new-prescription-form"; // Corregido: Removed extra slashes
+import NewDiagnosisForm from "@/pages/new-diagnosis-form"; // Corregido: Removed extra slashes
+import NewReferralForm from "@/pages/new-referral-form"; // Corregido: Removed extra slashes
+import PatientList from "@/pages/patient-list"; // Corregido: Removed extra slashes
+import PatientProfile from "@/pages/patient-profile"; // Corregido: Removed extra slashes
+import CheckInActionsPanel from "@/pages/check-in-actions-panel"; // Corregido: Removed extra slashes
 
 // Paciente: Mis Citas
-import PatientAppointmentsHistory from "./pages/patient-appointments-history";
-import NewPatientAppointment from "./pages/patient-appointment-new";
+import PatientAppointmentsHistory from "@/pages/patient-appointments-history"; // Corregido: Removed extra slashes
+import NewPatientAppointment from "@/pages/patient-appointment-new"; // Corregido: Removed extra slashes
 
 // Marketplace
-import B2CMarketplace from "./pages/b2c-marketplace";
-import B2BMarketplace from "./pages/b2b-marketplace";
-import MarketplaceHub from "./pages/marketplace-hub";
+import B2CMarketplace from "@/pages/b2c-marketplace"; // Corregido: Removed extra slashes
+import B2BMarketplace from "@/pages/b2b-marketplace"; // Corregido: Removed extra slashes
+import MarketplaceHub from "@/pages/marketplace-hub"; // Corregido: Removed extra slashes
 
 // Clínica
-import ClinicDashboard from "./pages/clinic-dashboard";
-import ClinicInventoryManagement from "./pages/clinic-inventory-management";
-import ClinicPurchaseOrders from "./pages/clinic-purchase-orders";
-import ClinicAppointmentsManagement from "./pages/clinic-appointments-management";
-import ClinicMarketplaceHub from "./pages/clinic-marketplace-hub";
-import ClinicSpacesManagement from "./pages/clinic-spaces-management";
-import NewSpaceRegistration from "./pages/new-space-registration";
+import ClinicDashboard from "@/pages/clinic-dashboard"; // Corregido: Removed extra slashes
+import ClinicInventoryManagement from "@/pages/clinic-inventory-management"; // Corregido: Removed extra slashes
+import ClinicPurchaseOrders from "@/pages/clinic-purchase-orders"; // Corregido: Removed extra slashes
+import ClinicAppointmentsManagement from "@/pages/clinic-appointments-management"; // Corregido: Removed extra slashes
+import ClinicMarketplaceHub from "@/pages/clinic-marketplace-hub"; // Corregido: Removed extra slashes
+import ClinicSpacesManagement from "@/pages/clinic-spaces-management"; // Corregido: Removed extra slashes
+import NewSpaceRegistration from "@/pages/new-space-registration"; // Corregido: Removed extra slashes
 
 // Capacidades
-import RxIntake from "./pages/capabilities/RxIntake";
-import LabOrders from "./pages/capabilities/LabOrders";
-import OpticsOrders from "./pages/capabilities/OpticsOrders";
-import AppointmentsCap from "./pages/capabilities/Appointments";
-import B2BCap from "./pages/capabilities/B2B";
-import AnalyticsCap from "./pages/capabilities/Analytics";
-import AuthorizationsCap from "./pages/capabilities/Authorizations";
-import ClaimsCap from "./pages/capabilities/Claims";
+import RxIntake from "@/pages/capabilities/RxIntake"; // Corregido: Removed extra slashes
+import LabOrders from "@/pages/capabilities/LabOrders"; // Corregido: Removed extra slashes
+import OpticsOrders from "@/pages/capabilities/OpticsOrders"; // Corregido: Removed extra slashes
+import AppointmentsCap from "@/pages/capabilities/Appointments"; // Corregido: Removed extra slashes
+import B2BCap from "@/pages/capabilities/B2B"; // Corregido: Removed extra slashes
+import AnalyticsCap from "@/pages/capabilities/Analytics"; // Corregido: Removed extra slashes
+import AuthorizationsCap from "@/pages/capabilities/Authorizations"; // Corregido: Removed extra slashes
+import ClaimsCap from "@/pages/capabilities/Claims"; // Corregido: Removed extra slashes
 
 // New Business Dashboard Routes
-import ProfessionalPublishingWorkflow from "./pages/professional-publishing-workflow";
-import BusinessTypeDashboardHub from "./pages/business-type-dashboard-hub";
+import ProfessionalPublishingWorkflow from "@/pages/professional-publishing-workflow"; // Corregido: Removed extra slashes
+import BusinessTypeDashboardHub from "@/pages/business-type-dashboard-hub"; // Corregido: Removed extra slashes
 
-// Provider
-import ProviderLayout from "./pages/provider/ProviderLayout";
-import ProviderDashboard from "./pages/provider/ProviderDashboard";
-import ProviderInventory from "./pages/provider/ProviderInventory";
-import ProviderServices from "./pages/provider/ProviderServices";
-import ProviderAnalytics from "./pages/provider/ProviderAnalytics";
-import ProviderB2B from "./pages/provider/ProviderB2B";
-import ProviderRxIntake from "./pages/provider/ProviderRxIntake";
-import ProviderAuthorizations from "./pages/provider/ProviderAuthorizations";
-import ProviderDispatchManagement from "./pages/provider/ProviderDispatchManagement";
-import ProviderBillingManagement from "./pages/provider/ProviderBillingManagement";
-import ProviderModuleConfiguration from "./pages/provider/ProviderModuleConfiguration";
+// Provider (usando alias limpio @)
+import ProviderLayout from "@/features/provider/pages/ProviderLayout"; // Corregido: Removed extra slashes
+import ProviderDashboard from "@/features/provider/pages/ProviderDashboard"; // Corregido: Removed extra slashes
+import ProviderInventory from "@/features/provider/pages/ProviderInventory"; // Corregido: Removed extra slashes
+import ProviderServices from "@/features/provider/pages/ProviderServices"; // Corregido: Removed extra slashes
+import ProviderAnalytics from "@/features/provider/pages/ProviderAnalytics"; // Corregido: Removed extra slashes
+import ProviderB2B from "@/features/provider/pages/ProviderB2B"; // Corregido: Removed extra slashes
+import ProviderRxIntake from "@/features/provider/pages/ProviderRxIntake"; // Corregido: Removed extra slashes
+import ProviderAuthorizations from "@/features/provider/pages/ProviderAuthorizations"; // Corregido: Removed extra slashes
+import ProviderDispatchManagement from "@/features/provider/pages/ProviderDispatchManagement"; // Corregido: Removed extra slashes
+import ProviderBillingManagement from "@/features/provider/pages/ProviderBillingManagement"; // Corregido: Removed extra slashes
+import ProviderModuleConfiguration from "@/features/provider/pages/ProviderModuleConfiguration"; // Corregido: Removed extra slashes
+import ProviderProfileSetup from "@/features/provider/pages/ProviderProfileSetup"; // Corregido: Removed extra slashes
 
 // Provider: Order Management (fuera de /provider)
-import ProviderOrderManagement from "./pages/provider-order-management";
-import BatchProcessor from "./pages/provider-order-management/components/BatchProcessor";
-import ShipmentTracker from "./pages/provider-order-management/components/ShipmentTracker";
-import AnalyticsDashboard from "./pages/provider-order-management/components/AnalyticsDashboard";
-
-// Setup inicial proveedor
-import ProviderProfileSetup from "./pages/provider/ProviderProfileSetup";
+import ProviderOrderManagement from "@/pages/provider-order-management"; // Corregido: Removed extra slashes
+import BatchProcessor from "@/pages/provider-order-management/components/BatchProcessor"; // Corregido: Removed extra slashes
+import ShipmentTracker from "@/pages/provider-order-management/components/ShipmentTracker"; // Corregido: Removed extra slashes
+import AnalyticsDashboard from "@/pages/provider-order-management/components/AnalyticsDashboard"; // Corregido: Removed extra slashes
 
 export default function Routes() {
   return (
@@ -173,7 +170,6 @@ export default function Routes() {
 
             {/* Orders */}
             <Route path="orders" element={<ProviderOrderManagement />} />
-            {/* ✅ NUEVA ruta para botón "Crear Pedido" */}
             <Route path="orders/create" element={<ProviderOrderManagement />} />
             <Route path="orders/batch" element={<BatchProcessor />} />
             <Route path="orders/shipments" element={<ShipmentTracker />} />

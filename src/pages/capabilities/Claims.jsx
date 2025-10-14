@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import Header from "../../components/ui/Header";
-import Sidebar from "../../components/ui/Sidebar";
-import Button from "../../components/ui/Button";
+﻿import React, { useState } from "react";
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import Button from "@/components/ui/Button";
 import { getClaims, setClaims } from "../../utils/mockData";
 
 export default function Claims() {

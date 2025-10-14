@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import KPICard from './components/KPICard';
-import AppointmentsList from './components/AppointmentsList';
-import QuickActions from './components/QuickActions';
-import UpcomingSchedule from './components/UpcomingSchedule';
-import PatientManagementShortcuts from './components/PatientManagementShortcuts';
-import RevenueTracking from './components/RevenueTracking';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+
+import KPICard from '@/pages/professional-dashboard/components/KPICard';
+import AppointmentsList from '@/pages/professional-dashboard/components/AppointmentsList';
+import QuickActions from '@/pages/professional-dashboard/components/QuickActions';
+import UpcomingSchedule from '@/pages/professional-dashboard/components/UpcomingSchedule';
+import PatientManagementShortcuts from '@/pages/professional-dashboard/components/PatientManagementShortcuts';
+import RevenueTracking from '@/pages/professional-dashboard/components/RevenueTracking';
+
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+
 
 const ProfessionalDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import DiagnosisCard from './components/DiagnosisCard';
-import TreatmentCard from './components/TreatmentCard';
-import MedicalTimeline from './components/MedicalTimeline';
-import SearchFilters from './components/SearchFilters';
-import ExportModal from './components/ExportModal';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+
+import DiagnosisCard from '@/pages/medical-history/components/DiagnosisCard';
+import TreatmentCard from '@/pages/medical-history/components/TreatmentCard';
+import MedicalTimeline from '@/pages/medical-history/components/MedicalTimeline';
+import SearchFilters from '@/pages/medical-history/components/SearchFilters';
+import ExportModal from '@/pages/medical-history/components/ExportModal'; //  corregido (estaba duplicado)
+
 
 const MedicalHistory = () => {
   const [activeTab, setActiveTab] = useState('diagnoses');

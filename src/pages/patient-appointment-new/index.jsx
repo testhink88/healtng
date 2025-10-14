@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Icon from '../../components/AppIcon';
-import DoctorSearch from './components/DoctorSearch';
-import DoctorCard from './components/DoctorCard';
-import CalendarBooking from './components/CalendarBooking';
-import BookingForm from './components/BookingForm';
-import BookingConfirmation from './components/BookingConfirmation';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
+import DoctorSearch from "@/pages/patient-appointment-new/components/DoctorSearch";
+import DoctorCard from "@/pages/patient-appointment-new/components/DoctorCard";
+import CalendarBooking from "@/pages/patient-appointment-new/components/CalendarBooking";
+import BookingForm from "@/pages/patient-appointment-new/components/BookingForm";
+import BookingConfirmation from "@/pages/patient-appointment-new/components/BookingConfirmation";
 
 const NewPatientAppointment = () => {
   const navigate = useNavigate();

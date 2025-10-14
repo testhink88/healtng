@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
-import Icon from '../../components/AppIcon';
-import SpaceCard from './components/SpaceCard';
-import BookingDrawer from './components/BookingDrawer';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Icon from '@/components/AppIcon';
+import SpaceCard from "@/pages/clinic-spaces-management/components/SpaceCard";
+import BookingDrawer from "@/pages/clinic-spaces-management/components/BookingDrawer";
+
 import { 
   mockSpaces, 
   mockBookings,

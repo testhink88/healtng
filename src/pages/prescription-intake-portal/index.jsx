@@ -1,10 +1,10 @@
-// src/pages/prescription-intake-portal/index.jsx
+﻿// src/@/@/pages/prescription-intake-portal/index.jsx
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Icon from '../../components/AppIcon';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
 import { getproviderProfile } from '../../utils/providerProfile';
 
 // Bandeja local (simula pedidos que llegan desde paciente o QR)

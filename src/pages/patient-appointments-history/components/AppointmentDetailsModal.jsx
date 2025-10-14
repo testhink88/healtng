@@ -1,6 +1,6 @@
-import React from 'react';
-import Button from '../../../components/ui/Button';
-import Icon from '../../../components/AppIcon';
+﻿import React from 'react';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
 import { cn } from '../../../utils/cn';
 
 const AppointmentDetailsModal = ({ isOpen, onClose, appointment, onAction }) => {

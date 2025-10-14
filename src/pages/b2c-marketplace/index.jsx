@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import GlobalSearch from '../../components/ui/GlobalSearch';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import GlobalSearch from '@/components/ui/GlobalSearch';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
 
 // Import marketplace components
 import FilterPanel from '../marketplace/components/FilterPanel';

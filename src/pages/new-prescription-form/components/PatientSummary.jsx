@@ -1,5 +1,6 @@
 import React from 'react';
-import Icon from '../../../components/AppIcon';
+import Icon from "@/components/AppIcon";
+
 
 const PatientSummary = ({ patient, appointment }) => {
   if (!patient) return null;

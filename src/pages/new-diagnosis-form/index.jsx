@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
 
-import Select from '../../components/ui/Select';
-import Icon from '../../components/AppIcon';
-import PatientSummary from './components/PatientSummary';
-import DiagnosisSearch from './components/DiagnosisSearch';
-import ClinicalFindings from './components/ClinicalFindings';
-import TreatmentPlan from './components/TreatmentPlan';
+import Select from '@/components/ui/Select';
+import Icon from '@/components/AppIcon';
+import PatientSummary from '@/pages/new-diagnosis-form/components/PatientSummary';
+import DiagnosisSearch from '@/pages/new-diagnosis-form/components/DiagnosisSearch';
+import ClinicalFindings from '@/pages/new-diagnosis-form/components/ClinicalFindings';
+import TreatmentPlan from '@/pages/new-diagnosis-form/components/TreatmentPlan';
+
 
 const NewDiagnosisForm = () => {
   const location = useLocation();

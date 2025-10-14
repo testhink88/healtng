@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import GlobalSearch from '../../components/ui/GlobalSearch';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import GlobalSearch from '@/components/ui/GlobalSearch';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 const B2BMarketplace = () => {
   const navigate = useNavigate();

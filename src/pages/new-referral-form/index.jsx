@@ -2,17 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Icon from '../../components/AppIcon';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Icon from "@/components/AppIcon";
 
-import SpecialtySelector from './components/SpecialtySelector';
-import UrgencySelector from './components/UrgencySelector';
-import ReferralReasonForm from './components/ReferralReasonForm';
-import AttachmentUpload from './components/AttachmentUpload';
-import InsuranceVerification from './components/InsuranceVerification';
+// ✅ Corregidos: deben apuntar a la carpeta local de la page
+import SpecialtySelector from "@/pages/new-referral-form/components/SpecialtySelector";
+import UrgencySelector from "@/pages/new-referral-form/components/UrgencySelector";
+import ReferralReasonForm from "@/pages/new-referral-form/components/ReferralReasonForm";
+import AttachmentUpload from "@/pages/new-referral-form/components/AttachmentUpload";
+import InsuranceVerification from "@/pages/new-referral-form/components/InsuranceVerification";
+
 
 const NewReferralForm = () => {
   const location = useLocation();

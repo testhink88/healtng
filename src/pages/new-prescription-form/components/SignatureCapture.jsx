@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Button from '../../../components/ui/Button';
-import Icon from '../../../components/AppIcon';
+import Button from '@/components/ui/Button';
+import Icon from "@/components/AppIcon";
 
 const SignatureCapture = ({ signature, onSignatureChange }) => {
   const [isCapturing, setIsCapturing] = useState(false);

@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, Heart } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Building2, Heart } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import GlobalSearch from '../../components/ui/GlobalSearch';
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import GlobalSearch from "@/components/ui/GlobalSearch";
 
-import MarketplaceCard from './components/MarketplaceCard';
-import RoleSwitcher from './components/RoleSwitcher';
-import QuickAccessShortcuts from './components/QuickAccessShortcuts';
-import MarketplaceAnalytics from './components/MarketplaceAnalytics';
+// 👇 Todos los componentes específicos del Marketplace desde la misma carpeta
+import MarketplaceCard from "@/pages/marketplace-hub/components/MarketplaceCard";
+import RoleSwitcher from "@/pages/marketplace-hub/components/RoleSwitcher";
+import QuickAccessShortcuts from "@/pages/marketplace-hub/components/QuickAccessShortcuts";
+import MarketplaceAnalytics from "@/pages/marketplace-hub/components/MarketplaceAnalytics";
+
 
 const MarketplaceHub = () => {
   const navigate = useNavigate();

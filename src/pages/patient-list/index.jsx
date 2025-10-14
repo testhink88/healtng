@@ -1,11 +1,11 @@
 // src/pages/patient-list/index.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Sidebar from 'components/ui/Sidebar';
-import Header from 'components/ui/Header';
-import Icon from 'components/AppIcon';
-import Button from 'components/ui/Button';
-import Input from 'components/ui/Input';
+import Sidebar from '@/components/ui/Sidebar';
+import Header from '@/components/ui/Header';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 const PatientList = () => {
   const location = useLocation();

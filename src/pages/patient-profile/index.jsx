@@ -1,16 +1,17 @@
 // src/pages/patient-profile/index.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import Sidebar from "components/ui/Sidebar";
-import Header from "components/ui/Header";
-import Icon from "components/AppIcon";
-import Button from "components/ui/Button";
+import Sidebar from "@/components/ui/Sidebar";
+import Header from "@/components/ui/Header";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
-import QuickActions from "./components/QuickActions";
-import PersonalInfo from "./components/PersonalInfo";
-import MedicalHistory from "./components/MedicalHistory";
-import PrescriptionsTab from "./components/PrescriptionsTab";
-import AppointmentsTab from "./components/AppointmentsTab";
+import QuickActions from "@/pages/patient-profile/components/QuickActions";
+import PersonalInfo from "@/pages/patient-profile/components/PersonalInfo";
+import MedicalHistory from "@/pages/patient-profile/components/MedicalHistory";
+import PrescriptionsTab from "@/pages/patient-profile/components/PrescriptionsTab";
+import AppointmentsTab from "@/pages/patient-profile/components/AppointmentsTab";
+
 
 const PatientProfile = () => {
   const { id: idParam } = useParams();

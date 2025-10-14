@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import Header from "../../components/ui/Header";
-import Sidebar from "../../components/ui/Sidebar";
-import Icon from "../../components/AppIcon";
-import Button from "../../components/ui/Button";
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
-import PrescriptionCard from "./components/PrescriptionCard";
-import PrescriptionFilters from "./components/PrescriptionFilters";
-import PrescriptionTabs from "./components/PrescriptionTabs";
-import PharmacyFinderModal from "./components/PharmacyFinderModal";
-import RenewalRequestModal from "./components/RenewalRequestModal";
+import PrescriptionCard from "@/pages/prescription-management/components/PrescriptionCard";
+import PrescriptionFilters from "@/pages/prescription-management/components/PrescriptionFilters";
+import PrescriptionTabs from "@/pages/prescription-management/components/PrescriptionTabs";
+import PharmacyFinderModal from "@/pages/prescription-management/components/PharmacyFinderModal";
+import RenewalRequestModal from "@/pages/prescription-management/components/RenewalRequestModal";
+
 
 const SPECIALTIES = ["Medicina General", "Pediatría", "Cardiología", "Dermatología"];
 const DOCTORS = ["Dr. Carlos Mendoza", "Dra. Ana Rodríguez", "Dr. Luis García", "Dr. María González"];

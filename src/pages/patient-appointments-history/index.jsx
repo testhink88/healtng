@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
+import SearchFilters from "@/pages/patient-appointments-history/components/SearchFilters";
+import AppointmentCard from "@/pages/patient-appointments-history/components/AppointmentCard";
+import ExportModal from "@/pages/patient-appointments-history/components/ExportModal";
+import AppointmentDetailsModal from "@/pages/patient-appointments-history/components/AppointmentDetailsModal";
 
 
-import Icon from '../../components/AppIcon';
-import SearchFilters from './components/SearchFilters';
-import AppointmentCard from './components/AppointmentCard';
-import ExportModal from './components/ExportModal';
-import AppointmentDetailsModal from './components/AppointmentDetailsModal';
+
 
 const PatientAppointmentsHistory = () => {
   const navigate = useNavigate();

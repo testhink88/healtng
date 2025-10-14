@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import SearchFilters from './components/SearchFilters';
-import DoctorCard from './components/DoctorCard';
-import ReviewModal from './components/ReviewModal';
-import DoctorProfile from './components/DoctorProfile';
+import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import SearchFilters from '@/pages/doctor-discovery/components/SearchFilters';
+import DoctorCard from '@/pages/doctor-discovery/components/DoctorCard';
+import ReviewModal from '@/pages/doctor-discovery/components/ReviewModal';
+import DoctorProfile from '@/pages/doctor-discovery/components/DoctorProfile';
 
 const DoctorDiscovery = () => {
   const [searchQuery, setSearchQuery] = useState('');

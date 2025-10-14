@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Button from '../../../components/ui/Button';
-import Icon from '../../../components/AppIcon';
+﻿import React, { useState } from 'react';
+import Button from '@/components/ui/Button';
+import Icon from '@/components/AppIcon';
 import { cn } from '../../../utils/cn';
 
 const CalendarBooking = ({ doctor, onDateTimeSelect, onBack }) => {

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import Sidebar from '../../components/ui/Sidebar';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
-import Icon from '../../components/AppIcon';
-import PatientSummary from './components/PatientSummary';
-import MedicationSearch from './components/MedicationSearch';
-import PrescriptionPreview from './components/PrescriptionPreview';
-import SignatureCapture from './components/SignatureCapture';
+import Header from '@/components/ui/Header';
+import Sidebar from '@/components/ui/Sidebar';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Icon from '@/components/AppIcon';
+import PatientSummary from '@/pages/new-prescription-form/components/PatientSummary';
+import MedicationSearch from '@/pages/new-prescription-form/components/MedicationSearch';
+import PrescriptionPreview from '@/pages/new-prescription-form/components/PrescriptionPreview';
+import SignatureCapture from '@/pages/new-prescription-form/components/SignatureCapture';
+
 
 const NewPrescriptionForm = () => {
   const location = useLocation();

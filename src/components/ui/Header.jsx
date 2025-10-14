@@ -1,103 +1,110 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Icon from '../AppIcon';
-import Button from './Button';
+// src/components/ui/Header.jsx
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
-const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, className = '' }) => {
+const Header = ({
+  userRole = "patient",
+  isAuthenticated = true,
+  onMenuToggle,
+  className = "",
+}) => {
   const navigate = useNavigate();
 
-  // Rol efectivo desde prop o localStorage
-  const effectiveRole = userRole || localStorage.getItem('userRole') || 'patient';
+  const effectiveRole = userRole || localStorage.getItem("userRole") || "patient";
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [notifications, setNotifications] = useState([
-    { id: 1, type: 'appointment', message: 'Cita médica mañana a las 10:00 AM', time: '2h', unread: true },
-    { id: 2, type: 'prescription', message: 'Receta lista para recoger', time: '4h', unread: true },
-    { id: 3, type: 'payment', message: 'Pago procesado exitosamente', time: '1d', unread: false }
+    { id: 1, type: "appointment", message: "Cita médica mañana a las 10:00 AM", time: "2h", unread: true },
+    { id: 2, type: "prescription", message: "Receta lista para recoger", time: "4h", unread: true },
+    { id: 3, type: "payment", message: "Pago procesado exitosamente", time: "1d", unread: false },
   ]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleSearch = (e) => {
     e?.preventDefault();
     if (searchQuery.trim()) {
       setIsSearchOpen(false);
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
 
-  const markAsRead = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
-  const clearAllNotifications = () => { setNotifications([]); setIsNotificationOpen(false); };
+  const markAsRead = (id) =>
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    setIsNotificationOpen(false);
+  };
 
   useEffect(() => {
     const closeAll = (e) => {
-      if (!e.target.closest('.notification-dropdown')) setIsNotificationOpen(false);
-      if (!e.target.closest('.profile-dropdown')) setIsProfileOpen(false);
-      if (!e.target.closest('.search-container')) setIsSearchOpen(false);
+      if (!e.target.closest(".notification-dropdown")) setIsNotificationOpen(false);
+      if (!e.target.closest(".profile-dropdown")) setIsProfileOpen(false);
+      if (!e.target.closest(".search-container")) setIsSearchOpen(false);
     };
-    document.addEventListener('mousedown', closeAll);
-    return () => document.removeEventListener('mousedown', closeAll);
+    document.addEventListener("mousedown", closeAll);
+    return () => document.removeEventListener("mousedown", closeAll);
   }, []);
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'appointment':  return 'Calendar';
-      case 'prescription': return 'Pill';
-      case 'payment':      return 'CreditCard';
-      default:             return 'Bell';
+      case "appointment":
+        return "Calendar";
+      case "prescription":
+        return "Pill";
+      case "payment":
+        return "CreditCard";
+      default:
+        return "Bell";
     }
   };
 
-  // Accesos rápidos por rol
   const getRoleBasedQuickActions = () => {
     switch (effectiveRole) {
-      case 'patient':
+      case "patient":
         return [
-          { label: 'Buscar Médicos', icon: 'Search',   href: '/doctor-discovery' },
-          { label: 'Mis Citas',      icon: 'Calendar', href: '/patient-appointment-history' },
-          { label: 'Agendar Cita',   icon: 'Plus',     href: '/new-patient-appointment' },
-          { label: 'Recetas',        icon: 'Pill',     href: '/prescription-management' },
+          { label: "Buscar Médicos", icon: "Search", href: "/doctor-discovery" },
+          { label: "Mis Citas", icon: "Calendar", href: "/patient-appointment-history" },
+          { label: "Agendar Cita", icon: "Plus", href: "/new-patient-appointment" },
+          { label: "Recetas", icon: "Pill", href: "/prescription-management" },
         ];
-      case 'doctor':
-      case 'specialist':
+      case "doctor":
+      case "specialist":
         return [
-          { label: 'Agenda de Citas', icon: 'Calendar', href: '/appointment-booking' },
-          { label: 'Mis Pacientes',   icon: 'Users',    href: '/patients' },
-          { label: 'Nueva Receta',    icon: 'FileText', href: '/prescriptions/new' },
+          { label: "Agenda de Citas", icon: "Calendar", href: "/appointment-booking" },
+          { label: "Mis Pacientes", icon: "Users", href: "/patients" },
+          { label: "Nueva Receta", icon: "FileText", href: "/prescriptions/new" },
         ];
-      case 'clinic':
-      case 'clinic_admin':
+      case "clinic":
+      case "clinic_admin":
         return [
-          { label: 'Inventario',         icon: 'Package',      href: '/clinic/inventory' },
-          { label: 'Órdenes de Compra',  icon: 'ShoppingCart', href: '/clinic/purchase-orders' },
-          { label: 'Agenda de Citas',    icon: 'Calendar',     href: '/appointment-booking' },
-          { label: 'Marketplace',        icon: 'Store',        href: '/marketplace-hub' },
+          { label: "Inventario", icon: "Package", href: "/clinic/inventory" },
+          { label: "Órdenes de Compra", icon: "ShoppingCart", href: "/clinic/purchase-orders" },
+          { label: "Agenda de Citas", icon: "Calendar", href: "/appointment-booking" },
+          { label: "Marketplace", icon: "Store", href: "/marketplace-hub" },
         ];
-      case 'provider':
-      case 'provider':
+      case "provider":
         return [
-          { label: 'Panel Proveedor', icon: 'BarChart3', href: '/provider-dashboard' },
-          { label: 'Productos',       icon: 'Package2',  href: '/provider/products' },
-          { label: 'Cargar CSV/XLSX', icon: 'Upload',    href: '/provider/uploads' },
+          { label: "Panel Proveedor", icon: "BarChart3", href: "/provider/dashboard" },
+          { label: "Productos", icon: "Package2", href: "/provider/products" },
+          { label: "Cargar CSV/XLSX", icon: "Upload", href: "/provider/uploads" },
         ];
       default:
         return [
-          { label: 'Buscar Médicos', icon: 'Search',   href: '/doctor-discovery' },
-          { label: 'Marketplace',    icon: 'Store',    href: '/marketplace-hub' },
-          { label: 'Pagos',          icon: 'CreditCard', href: '/payment-processing' },
+          { label: "Buscar Médicos", icon: "Search", href: "/doctor-discovery" },
+          { label: "Marketplace", icon: "Store", href: "/marketplace-hub" },
+          { label: "Pagos", icon: "CreditCard", href: "/payment-processing" },
         ];
     }
   };
 
   const quickActions = getRoleBasedQuickActions();
-
-  const setRoleAndReload = (role) => {
-    localStorage.setItem('userRole', role);
-    navigate(0); // recarga suave
-  };
 
   if (!isAuthenticated) {
     return (
@@ -109,7 +116,7 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
             </div>
             <span className="text-xl font-bold text-foreground">Healtng</span>
           </div>
-          <Button variant="default" className="min-w-touch min-h-touch" onClick={() => navigate('/login')}>
+          <Button variant="default" onClick={() => navigate("/login")}>
             Iniciar Sesión
           </Button>
         </div>
@@ -118,21 +125,19 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
   }
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-40 bg-card border-b border-border ${className}`}>
+    <header className={`fixed top-0 left-0 right-0 z-40 bg-card border-b border-border overflow-visible ${className}`}>
       <div className="flex items-center justify-between h-16 px-4 lg:px-6">
+        {/* IZQUIERDA */}
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden min-w-touch min-h-touch">
+          <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden">
             <Icon name="Menu" size={20} />
           </Button>
-
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Icon name="Heart" size={20} color="white" />
             </div>
             <span className="text-xl font-bold text-foreground">Healtng</span>
           </div>
-
-          {/* Quick actions */}
           <nav className="hidden lg:flex items-center space-x-1 ml-8">
             {quickActions.slice(0, 4).map((action, idx) => (
               <Button
@@ -148,14 +153,15 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
           </nav>
         </div>
 
+        {/* DERECHA */}
         <div className="flex items-center space-x-2">
-          {/* Search */}
+          {/* Búsqueda */}
           <div className="search-container relative">
-            <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(!isSearchOpen)} className="min-w-touch min-h-touch">
+            <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen((v) => !v)}>
               <Icon name="Search" size={20} />
             </Button>
             {isSearchOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-lg shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-lg shadow-lg z-50">
                 <form onSubmit={handleSearch} className="p-4">
                   <div className="relative">
                     <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -176,16 +182,16 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
 
           {/* Notificaciones */}
           <div className="notification-dropdown relative">
-            <Button variant="ghost" size="icon" onClick={() => setIsNotificationOpen(!isNotificationOpen)} className="relative min-w-touch min-h-touch">
+            <Button variant="ghost" size="icon" onClick={() => setIsNotificationOpen((v) => !v)} className="relative">
               <Icon name="Bell" size={20} />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-error text-error-foreground text-xs font-medium rounded-full flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Button>
             {isNotificationOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-lg shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-lg shadow-lg z-50">
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <h3 className="font-semibold text-foreground">Notificaciones</h3>
                   {notifications.length > 0 && (
@@ -201,24 +207,25 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
                       <p className="text-sm">No hay notificaciones</p>
                     </div>
                   ) : (
-                    notifications.map(n => (
+                    notifications.map((n) => (
                       <div
                         key={n.id}
-                        className={`p-4 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer ${n.unread ? 'bg-accent/20' : ''}`}
+                        className={`p-4 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer ${
+                          n.unread ? "bg-accent/20" : ""
+                        }`}
                         onClick={() => markAsRead(n.id)}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            n.type === 'appointment' ? 'bg-primary/10' :
-                            n.type === 'prescription' ? 'bg-success/10' : 'bg-warning/10'
-                          }`}>
-                            <Icon
-                              name={getNotificationIcon(n.type)}
-                              size={16}
-                              color={n.type === 'appointment' ? 'var(--color-primary)' :
-                                     n.type === 'prescription' ? 'var(--color-success)' :
-                                     'var(--color-warning)'}
-                            />
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              n.type === "appointment"
+                                ? "bg-primary/10"
+                                : n.type === "prescription"
+                                ? "bg-success/10"
+                                : "bg-warning/10"
+                            }`}
+                          >
+                            <Icon name={getNotificationIcon(n.type)} size={16} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-foreground">{n.message}</p>
@@ -234,9 +241,9 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
             )}
           </div>
 
-          {/* Perfil + Cambiar rol */}
+          {/* Perfil */}
           <div className="profile-dropdown relative">
-            <Button variant="ghost" onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center space-x-2 px-3 py-2 min-h-touch">
+            <Button variant="ghost" onClick={() => setIsProfileOpen((v) => !v)} className="flex items-center space-x-2 px-3 py-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <Icon name="User" size={16} color="white" />
               </div>
@@ -244,54 +251,36 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
             </Button>
 
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-lg shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-lg shadow-lg z-50">
                 <div className="p-4 border-b border-border">
                   <p className="font-medium text-foreground">Healtng</p>
-                  <p className="text-sm text-muted-foreground">Rol actual: <span className="font-medium">{effectiveRole}</span></p>
+                  <p className="text-sm text-muted-foreground">
+                    Rol actual: <span className="font-medium">{effectiveRole}</span>
+                  </p>
                 </div>
 
-                {/* Acciones de perfil */}
                 <div className="py-2">
-                  <Button variant="ghost" className="w-full justify-start px-4 py-2 text-sm" onClick={() => navigate('/profile')}>
+                  <Button variant="ghost" className="w-full justify-start px-4 py-2 text-sm" onClick={() => navigate("/profile")}>
                     <Icon name="User" size={16} className="mr-3" />
                     Mi Perfil
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start px-4 py-2 text-sm" onClick={() => navigate('/settings')}>
+                  <Button variant="ghost" className="w-full justify-start px-4 py-2 text-sm" onClick={() => navigate("/settings")}>
                     <Icon name="Settings" size={16} className="mr-3" />
                     Configuración
                   </Button>
                 </div>
 
-                <div className="px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground">Cambiar rol</div>
-                <div className="pb-2">
-                  <div className="grid grid-cols-2 gap-1 px-2">
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('patient')}>
-                      Paciente
-                    </Button>
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('doctor')}>
-                      Médico
-                    </Button>
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('clinic')}>
-                      Clínica
-                    </Button>
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('clinic_admin')}>
-                      Clinic Admin
-                    </Button>
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('provider')}>
-                      Proveedor
-                    </Button>
-                    <Button variant="ghost" className="justify-start text-sm" onClick={() => setRoleAndReload('specialist')}>
-                      Especialista
-                    </Button>
-                  </div>
-                </div>
+                {/* 🚫 Se eliminó la sección Cambiar rol */}
 
                 <div className="border-t border-border my-2" />
                 <div className="py-2">
                   <Button
                     variant="ghost"
                     className="w-full justify-start px-4 py-2 text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => { localStorage.removeItem('auth-token'); navigate('/login'); }}
+                    onClick={() => {
+                      localStorage.removeItem("auth-token");
+                      navigate("/login");
+                    }}
                   >
                     <Icon name="LogOut" size={16} className="mr-3" />
                     Cerrar Sesión
@@ -305,7 +294,7 @@ const Header = ({ userRole = 'patient', isAuthenticated = true, onMenuToggle, cl
 
       {/* Búsqueda móvil */}
       {isSearchOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-card border-b border-border p-4">
+        <div className="lg:hidden absolute top-full left-0 right-0 bg-card border-b border-border p-4 z-50">
           <form onSubmit={handleSearch}>
             <div className="relative">
               <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "../../components/AppIcon";
-import Button from "../../components/ui/Button";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 import { getAllMocksForCurrentBusiness } from "../../utils/mockData";
 
 // Business-specific dashboard components

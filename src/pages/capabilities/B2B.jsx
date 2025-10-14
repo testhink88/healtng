@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import Header from "../../components/ui/Header";
-import Sidebar from "../../components/ui/Sidebar";
-import Button from "../../components/ui/Button";
-import Icon from "../../components/AppIcon";
+﻿import React, { useState } from "react";
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import Button from "@/components/ui/Button";
+import Icon from "@/components/AppIcon";
 import { getProducts, getB2BOrders, setB2BOrders } from "../../utils/mockData";
 
 export default function B2B() {

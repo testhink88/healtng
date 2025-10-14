@@ -1,7 +1,7 @@
-import React from 'react';
-import ProductCard from './ProductCard';
-import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
+import React from "react";
+import ProductCard from "@/pages/marketplace/components/ProductCard"; // ✅ corregido
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
 const ProductGrid = ({ 
   products, 

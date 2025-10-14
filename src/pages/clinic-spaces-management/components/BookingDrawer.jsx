@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
-import Icon from '../../../components/AppIcon';
+﻿import React, { useEffect, useState } from 'react';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Icon from '@/components/AppIcon';
 import { generateTimeSlots, isSlotAvailable, calculateBookingCost } from '../../../utils/spaces';
 
 const BookingDrawer = ({
