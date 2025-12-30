@@ -1,135 +1,163 @@
-import React from 'react';
-import Icon from '@/components/AppIcon';
+// src/pages/patient-dashboard/components/QuickActionsGrid.jsx
+import React, { useMemo, useRef } from "react";
+import Icon from "@/components/AppIcon"; // mantiene tu icon system
+import { cn } from "@/utils/cn";        // si no lo usas, puedes remover este import
 
-const QuickActionsGrid = ({ className = '', onActionClick }) => {
-  const quickActions = [
-    {
-      id: 'pharmacy',
-      title: 'Farmacia',
-      description: 'Medicamentos y productos de salud',
-      icon: 'Pill',
-      color: 'bg-success/10 hover:bg-success/20 border-success/20',
-      iconColor: 'text-success',
-      href: '/prescription-management',
-      badge: '2 recetas'
-    },
-    {
-      id: 'cardiology',
-      title: 'Cardiología',
-      description: 'Especialistas del corazón',
-      icon: 'Heart',
-      color: 'bg-error/10 hover:bg-error/20 border-error/20',
-      iconColor: 'text-error',
-      href: '/doctor-discovery?specialty=cardiology',
-      badge: 'Disponible'
-    },
-    {
-      id: 'pediatrics',
-      title: 'Pediatría',
-      description: 'Cuidado infantil especializado',
-      icon: 'Baby',
-      color: 'bg-warning/10 hover:bg-warning/20 border-warning/20',
-      iconColor: 'text-warning',
-      href: '/doctor-discovery?specialty=pediatrics',
-      badge: null
-    },
-    {
-      id: 'emergency',
-      title: 'Emergencia',
-      description: 'Atención médica urgente 24/7',
-      icon: 'AlertTriangle',
-      color: 'bg-error/10 hover:bg-error/20 border-error/20',
-      iconColor: 'text-error',
-      href: '/emergency',
-      badge: '24/7',
-      urgent: true
-    },
-    {
-      id: 'laboratory',
-      title: 'Laboratorio',
-      description: 'Exámenes y análisis médicos',
-      icon: 'TestTube',
-      color: 'bg-primary/10 hover:bg-primary/20 border-primary/20',
-      iconColor: 'text-primary',
-      href: '/medical-history?tab=exams',
-      badge: '1 resultado'
-    },
-    {
-      id: 'teleconsultation',
-      title: 'Teleconsulta',
-      description: 'Consultas médicas virtuales',
-      icon: 'Video',
-      color: 'bg-secondary/10 hover:bg-secondary/20 border-secondary/20',
-      iconColor: 'text-secondary',
-      href: '/appointment-booking?type=virtual',
-      badge: 'Nuevo'
-    }
-  ];
+/**
+ * QuickActionsGrid
+ * - Móvil: carrusel horizontal con snap.
+ * - Desktop: grid responsivo.
+ * - onActionClick(action) se mantiene.
+ *
+ * Props:
+ *  - className?: string
+ *  - onActionClick?: (action) => void
+ *  - actions?: { key, label, href, icon }[]
+ */
+const QuickActionsGrid = ({ className = "", onActionClick, actions }) => {
+  const trackRef = useRef(null);
 
-  const handleActionClick = (action) => {
-    onActionClick?.(action);
-    if (action?.href) {
-      window.location.href = action?.href;
-    }
+  // Acciones por defecto (puedes editar los href según tus rutas)
+  const items = useMemo(
+    () =>
+      actions?.length
+        ? actions
+        : [
+            { key: "new_appointment", label: "Nueva Cita", icon: "CalendarPlus", href: "/appointment-booking" },
+            { key: "prescriptions",   label: "Mis Recetas", icon: "Pill",          href: "/prescription-management" },
+            { key: "medical_history", label: "Historial",   icon: "FileText",      href: "/medical-history" },
+            { key: "marketplace",     label: "Marketplace", icon: "ShoppingBag",   href: "/marketplace" },
+            { key: "payments",        label: "Reembolsos",  icon: "CreditCard",    href: "/payment-processing" },
+            { key: "upload_docs",     label: "Subir Soporte",icon: "Upload",       href: "/patient/reimbursements/upload" },
+          ],
+    [actions]
+  );
+
+  const handleClick = (it) => {
+    // Navegación simple sin romper contratos
+    try {
+      if (typeof onActionClick === "function") onActionClick(it);
+      if (it?.href) window.location.href = it.href;
+    } catch (_) {}
+  };
+
+  const scrollByCards = (dir = 1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector("[data-qa-card]");
+    const delta = card ? card.getBoundingClientRect().width + 16 : 260;
+    el.scrollBy({ left: dir * delta * 2, behavior: "smooth" });
   };
 
   return (
-    <div className={`${className}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-foreground">Servicios de Salud</h2>
-        <button 
-          onClick={() => window.location.href = '/doctor-discovery'}
-          className="text-sm text-primary hover:text-primary/80 font-medium transition-colors duration-150"
-        >
-          Ver todos
-        </button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {quickActions?.map((action) => (
-          <div
-            key={action?.id}
-            onClick={() => handleActionClick(action)}
-            className={`relative p-6 rounded-2xl border cursor-pointer transition-all duration-150 hover:shadow-md group ${action?.color}`}
-          >
-            {action?.badge && (
-              <span className={`absolute -top-2 -right-2 text-xs font-medium px-2 py-1 rounded-full ${
-                action?.urgent 
-                  ? 'bg-error text-error-foreground animate-pulse' 
-                  : 'bg-primary text-primary-foreground'
-              }`}>
-                {action?.badge}
-              </span>
-            )}
-            
-            <div className="text-center">
-              <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-card flex items-center justify-center ${action?.iconColor} group-hover:scale-105 transition-transform duration-150 shadow-sm`}>
-                <Icon name={action?.icon} size={28} />
-              </div>
-              
-              <h3 className={`font-semibold mb-2 ${action?.iconColor}`}>
-                {action?.title}
-              </h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                {action?.description}
-              </p>
-              
-              {action?.urgent && (
-                <div className="mt-3">
-                  <span className="inline-flex items-center text-xs bg-error text-error-foreground px-2 py-1 rounded-full">
-                    <Icon name="AlertTriangle" size={10} className="mr-1" />
-                    Urgente
-                  </span>
-                </div>
-              )}
-            </div>
+    <section className={cn("w-full", className)}>
+      {/* Encabezado opcional */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground">Accesos Rápidos</h3>
 
-            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-              <Icon name="ArrowRight" size={16} className="text-muted-foreground" />
+        {/* Flechas: visibles solo en móvil/tablet (ocultas en lg) */}
+        <div className="flex gap-2 lg:hidden">
+          <button
+            type="button"
+            aria-label="Anterior"
+            onClick={() => scrollByCards(-1)}
+            className="w-9 h-9 rounded-full border border-border bg-card flex items-center justify-center active:scale-95"
+          >
+            <Icon name="ChevronLeft" size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label="Siguiente"
+            onClick={() => scrollByCards(1)}
+            className="w-9 h-9 rounded-full border border-border bg-card flex items-center justify-center active:scale-95"
+          >
+            <Icon name="ChevronRight" size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Track móvil: carrusel con snap */}
+      <div className="lg:hidden -mx-4 px-4">
+        <div
+          ref={trackRef}
+          className="
+            flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory
+            scroll-px-4 touch-pan-x
+          "
+          role="list"
+          aria-label="Accesos rápidos"
+        >
+          {items.map((it) => (
+            <button
+              key={it.key}
+              data-qa-card
+              onClick={() => handleClick(it)}
+              className="
+                snap-start shrink-0 w-[220px]
+                bg-card border border-border rounded-2xl
+                p-4 text-left hover:bg-muted/40 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-primary/40
+              "
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Icon name={it.icon} size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{it.label}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {it.key === "new_appointment" && "Agenda en minutos"}
+                    {it.key === "prescriptions" && "Ver y renovar"}
+                    {it.key === "medical_history" && "Tus registros clínicos"}
+                    {it.key === "marketplace" && "Servicios y productos"}
+                    {it.key === "payments" && "Pagos y reembolsos"}
+                    {it.key === "upload_docs" && "Sube soportes de gasto"}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Grid desktop */}
+      <div
+        className="
+          hidden lg:grid
+          grid-cols-2 xl:grid-cols-3 gap-4
+        "
+        role="list"
+      >
+        {items.map((it) => (
+          <button
+            key={it.key}
+            onClick={() => handleClick(it)}
+            className="
+              bg-card border border-border rounded-2xl p-4 text-left
+              hover:bg-muted/40 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-primary/40
+            "
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Icon name={it.icon} size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{it.label}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {it.key === "new_appointment" && "Agenda en minutos"}
+                  {it.key === "prescriptions" && "Ver y renovar"}
+                  {it.key === "medical_history" && "Tus registros clínicos"}
+                  {it.key === "marketplace" && "Servicios y productos"}
+                  {it.key === "payments" && "Pagos y reembolsos"}
+                  {it.key === "upload_docs" && "Sube soportes de gasto"}
+                </p>
+              </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 

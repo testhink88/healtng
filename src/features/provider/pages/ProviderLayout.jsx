@@ -1,75 +1,102 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+﻿// src/features/provider/pages/ProviderLayout.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { Outlet } from "react-router-dom";
 import Header from "@/components/ui/Header";
-import Sidebar from "@/components/ui/Sidebar"; // Ahora está bien importado
-import { getProviderProfile } from '@/utils/providerProfile'; // Corregido el import para apuntar a la ubicación correcta
-import { getProviderBadges } from '@/utils/providerMetrics'; // Importamos la función de obtener los badges
+import Sidebar from "@/components/ui/Sidebar";
+import { getProviderBadges } from "@/utils/providerMetrics";
+import { getProviderProfile } from "@/utils/providerProfile";
+
+// 👇 Normaliza lo que venga del perfil a: "productos" | "servicios" | "mixto"
+const normalizeBusinessTypeForSidebar = (raw) => {
+  const t = String(raw || "").toLowerCase().trim();
+
+  if (["producto", "productos", "product", "products"].includes(t)) return "productos";
+  if (["servicio", "servicios", "service", "services"].includes(t)) return "servicios";
+  if (["mixto", "mixed", "mix"].includes(t)) return "mixto";
+
+  // fallback seguro
+  return "mixto";
+};
 
 const ProviderLayout = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeKey, setActiveKey] = useState("");
   const [badges, setBadges] = useState({ inventory: 0, orders: 0, shipments: 0 });
 
-  // Tipo de negocio
-  const businessType = useMemo(() => {
-    const p = getProviderProfile();
-    // valores esperados: "producto" | "servicio" | "mixto"
-    return p?.businessType || "mixto";
+  // Flags iniciales desde perfil
+  const [providerFlags, setProviderFlags] = useState(() => {
+    const p = getProviderProfile?.() || {};
+    return {
+      businessType: p?.businessType || "mixto", // lo que venga del perfil
+      audience: p?.audience || "both",
+      canBuy: !!p?.canBuy,
+    };
+  });
+
+  // Escuchar cambios del perfil
+  useEffect(() => {
+    const onUpd = () => {
+      const p = getProviderProfile?.() || {};
+      setProviderFlags({
+        businessType: p?.businessType || "mixto",
+        audience: p?.audience || "both",
+        canBuy: !!p?.canBuy,
+      });
+    };
+
+    window.addEventListener("providerProfile:updated", onUpd);
+    return () => window.removeEventListener("providerProfile:updated", onUpd);
   }, []);
 
+  // Badges del proveedor (pedidos, envíos, etc.)
   useEffect(() => {
-    setBadges(getProviderBadges()); // Establecemos los badges
+    try {
+      setBadges(getProviderBadges());
+    } catch {
+      setBadges({ inventory: 0, orders: 0, shipments: 0 });
+    }
   }, []);
 
-  // Item activo por ruta
-  useEffect(() => {
-    const p = location.pathname || "";
-    if (p.includes("/provider/inventory")) setActiveKey("inventory");
-    else if (p.includes("/provider/orders/create")) setActiveKey("orders_create");
-    else if (p.includes("/provider/orders")) setActiveKey("orders");
-    else if (p.includes("/provider/dispatch")) setActiveKey("shipments");
-    else if (p.includes("/provider/billing")) setActiveKey("billing");
-    else if (p.includes("/provider/analytics")) setActiveKey("analytics");
-    else if (p.includes("/provider/rx-intake")) setActiveKey("rx");
-    else if (p.includes("/provider/authorizations")) setActiveKey("authz");
-    else if (p.includes("/provider/services")) setActiveKey("services");
-    else if (p.includes("/provider/b2b")) setActiveKey("b2b");
-    else setActiveKey("dashboard");
-  }, [location.pathname]);
-
-  const handleMenuToggle = () => setMobileOpen(!mobileOpen);
+  // 👉 Esto es lo que se le pasa al Sidebar
+  const visualBusinessType = useMemo(
+    () => normalizeBusinessTypeForSidebar(providerFlags.businessType),
+    [providerFlags.businessType]
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Header
         userRole="provider"
-        onMenuToggle={handleMenuToggle}
+        onMenuToggle={() => setMobileOpen((v) => !v)}
         showSearch
         showNotifications
         showProfile
       />
 
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
 
       <Sidebar
         userRole="provider"
         isCollapsed={collapsed}
-        onToggleCollapse={() => setCollapsed(!collapsed)}
+        onToggleCollapse={() => setCollapsed((v) => !v)}
         isMobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
-        businessType={businessType}
-        modulos={{}} // Aquí debes pasar los módulos que usas (por ejemplo, inventario, pedidos, etc.)
+        businessType={visualBusinessType}          // 👈 ahora será "productos", "servicios" o "mixto"
         badges={badges}
+        providerAudience={providerFlags.audience}
+        providerCanBuy={providerFlags.canBuy}
       />
 
-      {/* Contenido principal */}
-      <main className={`pt-16 transition-all duration-300 ${collapsed ? "lg:ml-16" : "lg:ml-64"}`}>
+      <main
+        className={`pt-16 transition-all duration-300 ${
+          collapsed ? "lg:ml-16" : "lg:ml-64"
+        }`}
+      >
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
           <Outlet />
         </div>

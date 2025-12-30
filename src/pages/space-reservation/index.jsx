@@ -4,17 +4,16 @@ import Button from '@/components/ui/Button';
 import Header from '@/components/ui/Header';
 import Sidebar from '@/components/ui/Sidebar';
 
-import SpaceFilters from "@/pages/space-reservation/components/SpaceFilters";
-import SpaceCard from "@/pages/clinic-spaces-management/components/SpaceCard";
-import CalendarView from "@/pages/space-reservation/components/CalendarView"; // 🔥 corregido
-import BookingModal from "@/pages/space-reservation/components/BookingModal"; // 🔥 corregido
-import SpaceDetailsModal from "@/pages/space-reservation/components/SpaceDetailsModal"; // 🔥 corregido
-
+import BookingModal from '@/pages/space-reservation/components/BookingModal';
+import CalendarView from '@/pages/space-reservation/components/CalendarView';
+import SpaceCard from '@/pages/space-reservation/components/SpaceCard';
+import SpaceDetailsModal from '@/pages/space-reservation/components/SpaceDetailsModal';
+import SpaceFilters from '@/pages/space-reservation/components/SpaceFilters';
 
 const SpaceReservation = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('spaces'); // 'spaces', 'calendar'
+  const [currentView, setCurrentView] = useState('spaces'); // 'spaces' | 'calendar'
   const [calendarView, setCalendarView] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [filters, setFilters] = useState({});
@@ -25,7 +24,7 @@ const SpaceReservation = () => {
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for spaces
+  // ------- Mock data: Spaces -------
   const mockSpaces = [
     {
       id: 1,
@@ -63,10 +62,7 @@ const SpaceReservation = () => {
         cancellation: "Cancelación gratuita hasta 24 horas antes",
         approval: "Aprobación automática"
       },
-      nextAvailable: {
-        date: "2025-09-03",
-        time: "14:00"
-      }
+      nextAvailable: { date: "2025-09-03", time: "14:00" }
     },
     {
       id: 2,
@@ -103,10 +99,7 @@ const SpaceReservation = () => {
         cancellation: "Cancelación con 48 horas de anticipación",
         approval: "Requiere aprobación manual"
       },
-      nextAvailable: {
-        date: "2025-09-02",
-        time: "09:00"
-      }
+      nextAvailable: { date: "2025-09-02", time: "09:00" }
     },
     {
       id: 3,
@@ -143,10 +136,7 @@ const SpaceReservation = () => {
         cancellation: "Cancelación gratuita hasta 12 horas antes",
         approval: "Aprobación automática"
       },
-      nextAvailable: {
-        date: "2025-09-04",
-        time: "11:30"
-      }
+      nextAvailable: { date: "2025-09-04", time: "11:30" }
     },
     {
       id: 4,
@@ -183,10 +173,7 @@ const SpaceReservation = () => {
         cancellation: "Cancelación con 24 horas de anticipación",
         approval: "Requiere aprobación manual"
       },
-      nextAvailable: {
-        date: "2025-09-02",
-        time: "08:00"
-      }
+      nextAvailable: { date: "2025-09-02", time: "08:00" }
     },
     {
       id: 5,
@@ -223,10 +210,7 @@ const SpaceReservation = () => {
         cancellation: "Cancelación con 48 horas de anticipación",
         approval: "Aprobación automática"
       },
-      nextAvailable: {
-        date: "2025-09-02",
-        time: "15:00"
-      }
+      nextAvailable: { date: "2025-09-02", time: "15:00" }
     },
     {
       id: 6,
@@ -263,14 +247,11 @@ const SpaceReservation = () => {
         cancellation: "Cancelación gratuita hasta 24 horas antes",
         approval: "Aprobación automática"
       },
-      nextAvailable: {
-        date: "2025-09-05",
-        time: "10:00"
-      }
+      nextAvailable: { date: "2025-09-05", time: "10:00" }
     }
   ];
 
-  // Mock reservations data
+  // ------- Mock data: Reservations -------
   const mockReservations = [
     {
       id: 1,
@@ -322,36 +303,39 @@ const SpaceReservation = () => {
     }
   ];
 
-  // Initialize data
+  // ------- Init (simulate API) -------
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(r => setTimeout(r, 800));
       setSpaces(mockSpaces);
       setReservations(mockReservations);
       setIsLoading(false);
     };
-
-    loadData();
+    load();
   }, []);
 
-  // Filter spaces based on active filters
+  // ------- Filters -------
   const filteredSpaces = spaces?.filter(space => {
     if (filters?.clinic && space?.clinic?.name?.toLowerCase() !== filters?.clinic?.toLowerCase()) return false;
     if (filters?.spaceType && space?.type?.toLowerCase() !== filters?.spaceType?.toLowerCase()) return false;
     if (filters?.equipment && !space?.equipment?.some(eq => eq?.toLowerCase()?.includes(filters?.equipment?.toLowerCase()))) return false;
+
     if (filters?.capacity) {
-      const [min, max] = filters?.capacity?.split('-')?.map(n => parseInt(n));
-      if (max) {
-        if (space?.capacity < min || space?.capacity > max) return false;
-      } else if (filters?.capacity === '10+') {
+      if (filters.capacity === '10+') {
         if (space?.capacity < 10) return false;
+      } else {
+        const [min, max] = filters.capacity.split('-').map(n => parseInt(n, 10));
+        if (Number.isFinite(min) && space.capacity < min) return false;
+        if (Number.isFinite(max) && space.capacity > max) return false;
       }
     }
-    if (filters?.minPrice && space?.pricePerHour < parseFloat(filters?.minPrice)) return false;
-    if (filters?.maxPrice && space?.pricePerHour > parseFloat(filters?.maxPrice)) return false;
+
+    if (filters?.minPrice && space?.pricePerHour < parseFloat(filters.minPrice)) return false;
+    if (filters?.maxPrice && space?.pricePerHour > parseFloat(filters.maxPrice)) return false;
+
     if (filters?.availability === 'inmediata' && space?.status !== 'AVAILABLE') return false;
+
     if (filters?.quickFilter === 'disponible-ahora' && space?.status !== 'AVAILABLE') return false;
     if (filters?.quickFilter === 'mejor-calificado' && space?.rating < 4.8) return false;
     if (filters?.quickFilter === 'aprobacion-inmediata' && space?.policies?.approval !== 'Aprobación automática') return false;
@@ -359,61 +343,36 @@ const SpaceReservation = () => {
     return true;
   });
 
-  const handleFiltersChange = (newFilters) => {
-    setFilters(newFilters);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({});
-  };
-
-  const handleBookSpace = (space) => {
-    setSelectedSpace(space);
-    setIsBookingModalOpen(true);
-  };
-
-  const handleViewDetails = (space) => {
-    setSelectedSpace(space);
-    setIsDetailsModalOpen(true);
-  };
+  // ------- Handlers -------
+  const handleFiltersChange = (newFilters) => setFilters(newFilters);
+  const handleClearFilters = () => setFilters({});
+  const handleBookSpace = (space) => { setSelectedSpace(space); setIsBookingModalOpen(true); };
+  const handleViewDetails = (space) => { setSelectedSpace(space); setIsDetailsModalOpen(true); };
 
   const handleConfirmBooking = async (bookingData) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    await new Promise(r => setTimeout(r, 600));
     const newReservation = {
-      id: reservations?.length + 1,
+      id: reservations.length + 1,
       ...bookingData,
-      doctorName: "Usuario Actual" // In real app, get from auth context
+      doctorName: "Usuario Actual"
     };
-
     setReservations(prev => [...prev, newReservation]);
     setIsBookingModalOpen(false);
-    
-    // Show success message (in real app, use toast/notification)
     alert(`Reserva ${bookingData?.status === 'APPROVED' ? 'confirmada' : 'solicitada'} exitosamente`);
   };
 
   const handleReservationClick = (reservation) => {
-    // Handle reservation click - could open details modal
     console.log('Reservation clicked:', reservation);
   };
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-  };
+  const handleDateSelect = (date) => setSelectedDate(date);
+  const handleViewChange = (view) => setCalendarView(view);
 
-  const handleViewChange = (view) => {
-    setCalendarView(view);
-  };
-
+  // ------- Loading -------
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header 
-          userRole="doctor" 
-          onMenuToggle={() => setIsMobileSidebarOpen(true)} 
-        />
+        <Header userRole="doctor" onMenuToggle={() => setIsMobileSidebarOpen(true)} />
         <Sidebar
           userRole="doctor"
           isCollapsed={isSidebarCollapsed}
@@ -421,10 +380,7 @@ const SpaceReservation = () => {
           isMobileOpen={isMobileSidebarOpen}
           onMobileClose={() => setIsMobileSidebarOpen(false)}
         />
-        
-        <main className={`pt-16 transition-all duration-300 ${
-          isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-        }`}>
+        <main className={`pt-16 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
           <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
             <div className="text-center">
               <div className="animate-pulse-slow mb-4">
@@ -438,12 +394,10 @@ const SpaceReservation = () => {
     );
   }
 
+  // ------- UI -------
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        userRole="doctor" 
-        onMenuToggle={() => setIsMobileSidebarOpen(true)} 
-      />
+      <Header userRole="doctor" onMenuToggle={() => setIsMobileSidebarOpen(true)} />
       <Sidebar
         userRole="doctor"
         isCollapsed={isSidebarCollapsed}
@@ -451,21 +405,16 @@ const SpaceReservation = () => {
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
-      <main className={`pt-16 transition-all duration-300 ${
-        isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+
+      <main className={`pt-16 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         <div className="p-6">
-          {/* Page Header */}
+          {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Reserva de Espacios</h1>
-                <p className="text-muted-foreground">
-                  Encuentra y reserva espacios médicos para tus consultas y procedimientos
-                </p>
+                <p className="text-muted-foreground">Encuentra y reserva espacios médicos para tus consultas y procedimientos</p>
               </div>
-              
-              {/* View Toggle */}
               <div className="flex items-center space-x-2">
                 <Button
                   variant={currentView === 'spaces' ? 'default' : 'outline'}
@@ -500,12 +449,12 @@ const SpaceReservation = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Espacios Disponibles</p>
                     <p className="text-xl font-semibold text-foreground">
-                      {filteredSpaces?.filter(s => s?.status === 'AVAILABLE')?.length}
+                      {filteredSpaces.filter(s => s.status === 'AVAILABLE').length}
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
@@ -513,11 +462,11 @@ const SpaceReservation = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Mis Reservas</p>
-                    <p className="text-xl font-semibold text-foreground">{reservations?.length}</p>
+                    <p className="text-xl font-semibold text-foreground">{reservations.length}</p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
@@ -526,12 +475,12 @@ const SpaceReservation = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Pendientes</p>
                     <p className="text-xl font-semibold text-foreground">
-                      {reservations?.filter(r => r?.status === 'PENDING')?.length}
+                      {reservations.filter(r => r.status === 'PENDING').length}
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
@@ -540,7 +489,7 @@ const SpaceReservation = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Precio Promedio</p>
                     <p className="text-xl font-semibold text-foreground">
-                      ${Math.round(spaces?.reduce((acc, s) => acc + s?.pricePerHour, 0) / spaces?.length)}
+                      ${Math.round(spaces.reduce((acc, s) => acc + s.pricePerHour, 0) / (spaces.length || 1))}
                     </p>
                   </div>
                 </div>
@@ -560,38 +509,26 @@ const SpaceReservation = () => {
                 />
               </div>
 
-              {/* Spaces Grid */}
+              {/* Grid */}
               <div className="xl:col-span-3">
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    {filteredSpaces?.length} espacio(s) encontrado(s)
+                    {filteredSpaces.length} espacio(s) encontrado(s)
                   </p>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">Ordenar por:</span>
-                    <Button variant="outline" size="sm">
-                      Precio <Icon name="ChevronDown" size={14} className="ml-1" />
-                    </Button>
-                  </div>
                 </div>
 
-                {filteredSpaces?.length === 0 ? (
+                {filteredSpaces.length === 0 ? (
                   <div className="text-center py-12">
                     <Icon name="Search" size={48} className="mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      No se encontraron espacios
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Intenta ajustar los filtros de búsqueda
-                    </p>
-                    <Button variant="outline" onClick={handleClearFilters}>
-                      Limpiar Filtros
-                    </Button>
+                    <h3 className="text-lg font-medium text-foreground mb-2">No se encontraron espacios</h3>
+                    <p className="text-muted-foreground mb-4">Intenta ajustar los filtros de búsqueda</p>
+                    <Button variant="outline" onClick={handleClearFilters}>Limpiar Filtros</Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {filteredSpaces?.map((space) => (
+                    {filteredSpaces.map(space => (
                       <SpaceCard
-                        key={space?.id}
+                        key={space.id}
                         space={space}
                         onBookSpace={handleBookSpace}
                         onViewDetails={handleViewDetails}
@@ -615,6 +552,7 @@ const SpaceReservation = () => {
           )}
         </div>
       </main>
+
       {/* Modals */}
       <BookingModal
         isOpen={isBookingModalOpen}

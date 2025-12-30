@@ -1,4 +1,4 @@
-// Spaces management utility functions and mock data
+// src/utils/spaces.js
 
 /**
  * Mock spaces data for development
@@ -163,27 +163,6 @@ export const spaceStatuses = [
 ];
 
 /**
- * Available amenities for spaces
- */
-export const availableAmenities = [
-  'WiFi',
-  'Lavamanos',
-  'Esterilización',
-  'Monitor',
-  'Ecógrafo',
-  'Luz indirecta',
-  'Cámara HD',
-  'Audio profesional',
-  'Equipos de fisioterapia',
-  'Espejos',
-  'Colchonetas',
-  'Aire acondicionado',
-  'Calefacción',
-  'Ventanas',
-  'Iluminación natural'
-];
-
-/**
  * Amenities list for forms and components
  */
 export const amenitiesList = [
@@ -216,11 +195,6 @@ export const bookingStatuses = [
 
 /**
  * Check if two time ranges overlap
- * @param {string} aStart - Start time of first range (HH:MM format)
- * @param {string} aEnd - End time of first range (HH:MM format)
- * @param {string} bStart - Start time of second range (HH:MM format)
- * @param {string} bEnd - End time of second range (HH:MM format)
- * @returns {boolean} - True if ranges overlap
  */
 export const isOverlapping = (aStart, aEnd, bStart, bEnd) => {
   const parseTime = (timeStr) => {
@@ -238,15 +212,9 @@ export const isOverlapping = (aStart, aEnd, bStart, bEnd) => {
 
 /**
  * Check for booking conflicts
- * @param {string} spaceId - Space ID to check
- * @param {string} date - Date in YYYY-MM-DD format
- * @param {string} startTime - Start time in HH:MM format
- * @param {string} endTime - End time in HH:MM format
- * @param {string} excludeBookingId - Booking ID to exclude from conflict check
- * @returns {Array} - Array of conflicting bookings
  */
-export const checkBookingConflicts = (spaceId, date, startTime, endTime, excludeBookingId = null) => {
-  return mockBookings?.filter(booking => {
+export const checkBookingConflicts = (spaceId, date, startTime, endTime, excludeBookingId = null, currentBookings = mockBookings) => {
+  return currentBookings?.filter(booking => {
     if (booking?.id === excludeBookingId) return false;
     if (booking?.spaceId !== spaceId) return false;
     if (booking?.date !== date) return false;
@@ -257,10 +225,17 @@ export const checkBookingConflicts = (spaceId, date, startTime, endTime, exclude
 };
 
 /**
+ * Implementación real de isSlotAvailable para validar disponibilidad
+ */
+export const isSlotAvailable = (spaceId, date, startTime, endTime, currentBookings = mockBookings) => {
+  if (!spaceId || !date || !startTime || !endTime) return false;
+  
+  const conflicts = checkBookingConflicts(spaceId, date, startTime, endTime, null, currentBookings);
+  return conflicts?.length === 0;
+};
+
+/**
  * Calculate booking duration in hours
- * @param {string} startTime - Start time in HH:MM format
- * @param {string} endTime - End time in HH:MM format
- * @returns {number} - Duration in hours
  */
 export const calculateBookingDuration = (startTime, endTime) => {
   const parseTime = (timeStr) => {
@@ -276,10 +251,6 @@ export const calculateBookingDuration = (startTime, endTime) => {
 
 /**
  * Calculate total cost for a booking
- * @param {number} hourlyRate - Hourly rate for the space
- * @param {string} startTime - Start time in HH:MM format
- * @param {string} endTime - End time in HH:MM format
- * @returns {number} - Total cost
  */
 export const calculateBookingCost = (hourlyRate, startTime, endTime) => {
   const duration = calculateBookingDuration(startTime, endTime);
@@ -288,14 +259,10 @@ export const calculateBookingCost = (hourlyRate, startTime, endTime) => {
 
 /**
  * Filter spaces based on criteria
- * @param {Array} spaces - Array of spaces
- * @param {Object} filters - Filter criteria
- * @returns {Array} - Filtered spaces
  */
 export const filterSpaces = (spaces = [], filters = {}) => {
   let filteredSpaces = [...spaces];
 
-  // Filter by search term
   if (filters?.search) {
     const searchLower = filters?.search?.toLowerCase();
     filteredSpaces = filteredSpaces?.filter(space =>
@@ -306,58 +273,19 @@ export const filterSpaces = (spaces = [], filters = {}) => {
     );
   }
 
-  // Filter by type
   if (filters?.type && filters?.type !== 'all') {
-    filteredSpaces = filteredSpaces?.filter(space =>
-      space?.type === filters?.type
-    );
+    filteredSpaces = filteredSpaces?.filter(space => space?.type === filters?.type);
   }
 
-  // Filter by status
   if (filters?.status && filters?.status !== 'all') {
-    filteredSpaces = filteredSpaces?.filter(space =>
-      space?.status === filters?.status
-    );
-  }
-
-  // Filter by availability for a specific date/time
-  if (filters?.date && filters?.startTime && filters?.endTime) {
-    filteredSpaces = filteredSpaces?.filter(space => {
-      if (space?.status !== 'Disponible') return false;
-      
-      const conflicts = checkBookingConflicts(
-        space?.id,
-        filters?.date,
-        filters?.startTime,
-        filters?.endTime
-      );
-      
-      return conflicts?.length === 0;
-    });
+    filteredSpaces = filteredSpaces?.filter(space => space?.status === filters?.status);
   }
 
   return filteredSpaces;
 };
 
 /**
- * Get bookings for a specific date range
- * @param {string} startDate - Start date in YYYY-MM-DD format
- * @param {string} endDate - End date in YYYY-MM-DD format
- * @returns {Array} - Bookings in the date range
- */
-export const getBookingsInDateRange = (startDate, endDate) => {
-  return mockBookings?.filter(booking => {
-    const bookingDate = new Date(booking.date);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    return bookingDate >= start && bookingDate <= end;
-  });
-};
-
-/**
  * Get today's bookings
- * @returns {Array} - Today's bookings
  */
 export const getTodaysBookings = () => {
   const today = new Date()?.toISOString()?.split('T')?.[0];
@@ -366,82 +294,51 @@ export const getTodaysBookings = () => {
 
 /**
  * Get space utilization percentage
- * @param {string} spaceId - Space ID
- * @param {string} startDate - Start date for calculation
- * @param {string} endDate - End date for calculation
- * @returns {number} - Utilization percentage (0-100)
  */
 export const getSpaceUtilization = (spaceId, startDate, endDate) => {
   const bookings = mockBookings?.filter(booking => {
-    if (booking?.spaceId !== spaceId) return false;
-    if (booking?.status === 'cancelada') return false;
-    
+    if (booking?.spaceId !== spaceId || booking?.status === 'cancelada') return false;
     const bookingDate = new Date(booking.date);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    return bookingDate >= start && bookingDate <= end;
+    return bookingDate >= new Date(startDate) && bookingDate <= new Date(endDate);
   });
 
-  // Calculate total booked hours
   const totalBookedHours = bookings?.reduce((total, booking) => {
     return total + calculateBookingDuration(booking?.startTime, booking?.endTime);
   }, 0);
 
-  // Assume 8 hours per day availability (8:00-18:00)
-  const startDateObj = new Date(startDate);
-  const endDateObj = new Date(endDate);
-  const daysDiff = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24)) + 1;
-  const totalAvailableHours = daysDiff * 10; // 10 hours per day
-
-  return Math.min(100, (totalBookedHours / totalAvailableHours) * 100);
+  return Math.min(100, (totalBookedHours / 70) * 100); // 70h estimadas por semana
 };
 
 /**
  * Generate time slots for booking
- * @param {string} startHour - Start hour (e.g., '08')
- * @param {string} endHour - End hour (e.g., '18')
- * @param {number} interval - Interval in minutes (default: 30)
- * @returns {Array} - Array of time slots in HH:MM format
  */
 export const generateTimeSlots = (startHour = '08', endHour = '18', interval = 30) => {
   const slots = [];
-  const start = parseInt(startHour);
-  const end = parseInt(endHour);
-  
-  for (let hour = start; hour < end; hour++) {
+  for (let hour = parseInt(startHour); hour < parseInt(endHour); hour++) {
     for (let minute = 0; minute < 60; minute += interval) {
-      const timeSlot = `${hour?.toString()?.padStart(2, '0')}:${minute?.toString()?.padStart(2, '0')}`;
-      slots?.push(timeSlot);
+      slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
     }
   }
-  
   return slots;
 };
 
 /**
  * Get status color for UI components
- * @param {string} status - Status string
- * @returns {string} - CSS color class
  */
 export const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
     case 'disponible':
+    case 'confirmada':
       return 'text-green-600 bg-green-100';
     case 'reservado':
+    case 'completada':
       return 'text-blue-600 bg-blue-100';
     case 'ocupado':
       return 'text-red-600 bg-red-100';
     case 'mantenimiento':
       return 'text-orange-600 bg-orange-100';
-    case 'confirmada':
-      return 'text-green-600 bg-green-100';
     case 'pendiente':
       return 'text-yellow-600 bg-yellow-100';
-    case 'cancelada':
-      return 'text-gray-600 bg-gray-100';
-    case 'completada':
-      return 'text-blue-600 bg-blue-100';
     default:
       return 'text-gray-600 bg-gray-100';
   }
@@ -449,87 +346,7 @@ export const getStatusColor = (status) => {
 
 /**
  * Format currency for display
- * @param {number} amount - Amount to format
- * @param {string} currency - Currency symbol (default: '$')
- * @returns {string} - Formatted currency string
  */
 export const formatCurrency = (amount, currency = '$') => {
   return `${currency}${amount?.toFixed(2)}`;
 };
-
-/**
- * Format time range for display
- * @param {string} startTime - Start time in HH:MM format
- * @param {string} endTime - End time in HH:MM format
- * @returns {string} - Formatted time range
- */
-export const formatTimeRange = (startTime, endTime) => {
-  return `${startTime} - ${endTime}`;
-};
-
-/**
- * Validate booking form data
- * @param {Object} bookingData - Booking form data
- * @returns {Object} - Validation result with isValid and errors
- */
-export const validateBookingData = (bookingData) => {
-  const errors = {};
-
-  if (!bookingData?.spaceId) {
-    errors.spaceId = 'Selecciona un espacio';
-  }
-
-  if (!bookingData?.date) {
-    errors.date = 'Selecciona una fecha';
-  }
-
-  if (!bookingData?.startTime) {
-    errors.startTime = 'Selecciona hora de inicio';
-  }
-
-  if (!bookingData?.endTime) {
-    errors.endTime = 'Selecciona hora de fin';
-  }
-
-  if (bookingData?.startTime && bookingData?.endTime) {
-    if (bookingData?.startTime >= bookingData?.endTime) {
-      errors.endTime = 'La hora de fin debe ser posterior al inicio';
-    }
-  }
-
-  if (!bookingData?.professional?.trim()) {
-    errors.professional = 'Indica el profesional responsable';
-  }
-
-  if (!bookingData?.usage?.trim()) {
-    errors.usage = 'Describe el uso previsto';
-  }
-
-  // Check for conflicts
-  if (bookingData?.spaceId && bookingData?.date && bookingData?.startTime && bookingData?.endTime) {
-    const conflicts = checkBookingConflicts(
-      bookingData?.spaceId,
-      bookingData?.date,
-      bookingData?.startTime,
-      bookingData?.endTime,
-      bookingData?.id
-    );
-
-    if (conflicts?.length > 0) {
-      errors.conflict = 'Existe un conflicto de horario con otra reserva';
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors)?.length === 0,
-    errors
-  };
-};
-
-function isSlotAvailable(...args) {
-  // eslint-disable-next-line no-console
-  console.warn('Placeholder: isSlotAvailable is not implemented yet.', args);
-  return null;
-}
-
-export { isSlotAvailable };

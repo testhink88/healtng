@@ -1,42 +1,43 @@
-// vite.config.mjs
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { resolve } from "path";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'node:path'
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-  alias: {
-    "@": resolve(__dirname, "src"),
-    "@/utils": resolve(__dirname, "src/components/utils"),
-    "@/features": resolve(__dirname, "src/features"),
-    "@/shared": resolve(__dirname, "src/shared"),
-    "@/services": resolve(__dirname, "src/services"),
-    "@/assets": resolve(__dirname, "src/assets"),
-    "@/lib": resolve(__dirname, "src/lib"),
-    "@/types": resolve(__dirname, "src/types"),
-    "@/contexts": resolve(__dirname, "src/contexts"),
-    "@/styles": resolve(__dirname, "src/styles"),
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
+    preserveSymlinks: false,
   },
-},
+  define: {
+    'process.env': {},
+  },
   server: {
     port: 3000,
-    host: true,
-    proxy: {
-      "/api": {
-        target: "http://localhost/healtng_dash_carcasa",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api"),
-        configure: (proxy) => {
-          proxy.on("error", (err) => {
-            console.log("❌ Proxy error:", err);
-          });
-        },
-      },
-    },
+    strictPort: false,
+    open: false,
+    host: true,                        // permite acceso externo
+    allowedHosts: [
+      '.trycloudflare.com',            // permite cualquier URL de Cloudflared
+      // '.loca.lt',                   // (opcional) si quieres usar LocalTunnel también
+    ],
+    // Si el HMR no conecta tras el túnel, descomenta y pon tu host actual:
+    // hmr: {
+    //   protocol: 'wss',
+    //   host: 'isle-negotiation-horn-lucy.trycloudflare.com',
+    //   clientPort: 443,
+    // },
   },
   build: {
-    outDir: "dist",
-    sourcemap: false,
+    sourcemap: true,
+    outDir: 'dist',
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   },
-});
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+  },
+})

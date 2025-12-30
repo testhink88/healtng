@@ -1,36 +1,41 @@
 ﻿import React, { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
 import Icon from '@/components/AppIcon';
-import { generateTimeSlots, isSlotAvailable, calculateBookingCost } from '../../../utils/spaces';
+// ✅ Importamos las funciones exactas definidas en utils para asegurar la lógica de negocio
+import { 
+  generateTimeSlots, 
+  isSlotAvailable, 
+  calculateBookingCost, 
+  formatCurrency 
+} from '@/utils/spaces';
 
 const BookingDrawer = ({
-  isOpen = false,             // 🔹 NUEVO: control de visibilidad
+  isOpen = false,
   space,
   existingBookings = [],
   onConfirm,
   onClose
 }) => {
   const [formData, setFormData] = useState({
-    date: '',
-    startTime: '',
-    endTime: '',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '09:00',
+    endTime: '10:00',
     professional: '',
     purpose: '',
     notes: ''
   });
+  
   const [errors, setErrors] = useState({});
 
-  // 🔹 Si no está abierto, NO renderizamos nada (no hay backdrop bloqueando)
-  if (!isOpen) return null;
-
-  // Cerrar con ESC
+  // Bloquear scroll del cuerpo al abrir el drawer para mejorar la experiencia de usuario
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose?.();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    if (isOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const timeSlots = generateTimeSlots();
 
@@ -41,25 +46,18 @@ const BookingDrawer = ({
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData?.date) newErrors.date = 'La fecha es requerida';
-    if (!formData?.startTime) newErrors.startTime = 'La hora de inicio es requerida';
-    if (!formData?.endTime) newErrors.endTime = 'La hora de fin es requerida';
-    if (!formData?.professional) newErrors.professional = 'El profesional es requerido';
-    if (!formData?.purpose) newErrors.purpose = 'El uso previsto es requerido';
+    if (!formData?.date) newErrors.date = 'Requerido';
+    if (!formData?.startTime || !formData?.endTime) newErrors.time = 'Requerido';
+    if (!formData?.professional?.trim()) newErrors.professional = 'Indica el profesional';
+    if (!formData?.purpose?.trim()) newErrors.purpose = 'Indica el uso';
 
-    if (formData?.startTime && formData?.endTime && formData?.startTime >= formData?.endTime) {
-      newErrors.endTime = 'La hora de fin debe ser posterior a la de inicio';
+    if (formData.startTime >= formData.endTime) {
+      newErrors.endTime = 'Hora fin inválida';
     }
 
-    if (formData?.date && formData?.startTime && formData?.endTime) {
-      const ok = isSlotAvailable(
-        space?.id,
-        formData?.date,
-        formData?.startTime,
-        formData?.endTime,
-        existingBookings
-      );
-      if (!ok) newErrors.timeSlot = 'El horario seleccionado no está disponible';
+    if (formData.date && formData.startTime && formData.endTime && !newErrors.endTime) {
+      const isAvailable = isSlotAvailable(space?.id, formData.date, formData.startTime, formData.endTime, existingBookings);
+      if (!isAvailable) newErrors.timeSlot = 'Horario no disponible';
     }
 
     setErrors(newErrors);
@@ -69,180 +67,158 @@ const BookingDrawer = ({
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (!validateForm()) return;
-    const cost = calculateBookingCost(space?.hourlyRate, formData?.startTime, formData?.endTime);
-    onConfirm?.({ ...formData, cost, spaceId: space?.id });
+
+    const subtotal = calculateBookingCost(space?.hourlyRate, formData.startTime, formData.endTime);
+    const commission = subtotal * 0.05;
+    const total = subtotal - commission;
+
+    onConfirm?.({ 
+      ...formData, 
+      subtotal,
+      commission,
+      totalAmount: total,
+      spaceId: space?.id 
+    });
   };
 
-  const estimatedCost =
-    formData?.startTime && formData?.endTime
-      ? calculateBookingCost(space?.hourlyRate, formData?.startTime, formData?.endTime)
-      : 0;
-
-  // Cerrar si el clic fue en el backdrop (no dentro del drawer)
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose?.();
-  };
+  // Cálculos en tiempo real para el resumen financiero del Airbnb médico
+  const subtotal = (formData.startTime < formData.endTime) 
+    ? calculateBookingCost(space?.hourlyRate, formData.startTime, formData.endTime) 
+    : 0;
+  const healtngFee = subtotal * 0.05;
+  const netEarnings = subtotal - healtngFee;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50"
-      onClick={handleBackdropClick}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" />
-      {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex justify-end">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="p-6 border-b flex items-center justify-between bg-gray-50/80">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Nueva Reserva</h2>
+            <h2 className="text-xl font-bold text-gray-900">Registrar Alquiler</h2>
             <p className="text-sm text-gray-500">{space?.name}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-400">
             <Icon name="X" size={20} />
-          </Button>
+          </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Space Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">{space?.name}</h3>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p>Tipo: {space?.type}</p>
-              <p>Capacidad: {space?.capacity} personas</p>
-              <p>Tarifa: ${space?.hourlyRate}/hora</p>
-            </div>
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="date"
-              value={formData?.date}
-              onChange={(e) => handleInputChange('date', e?.target?.value)}
-              min={new Date()?.toISOString()?.split('T')?.[0]}
-              className={errors?.date ? 'border-red-300' : ''}
-            />
-            {errors?.date && <p className="mt-1 text-sm text-red-600">{errors?.date}</p>}
-          </div>
-
-          {/* Time Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hora Inicio <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData?.startTime}
-                onValueChange={(v) => handleInputChange('startTime', v)}
-                className={errors?.startTime ? 'border-red-300' : ''}
-              >
-                <option value="">Seleccionar</option>
-                {timeSlots?.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </Select>
-              {errors?.startTime && <p className="mt-1 text-sm text-red-600">{errors?.startTime}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hora Fin <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData?.endTime}
-                onValueChange={(v) => handleInputChange('endTime', v)}
-                className={errors?.endTime ? 'border-red-300' : ''}
-              >
-                <option value="">Seleccionar</option>
-                {timeSlots?.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </Select>
-              {errors?.endTime && <p className="mt-1 text-sm text-red-600">{errors?.endTime}</p>}
-            </div>
-          </div>
-
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          
           {errors?.timeSlot && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-700">{errors?.timeSlot}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700 text-sm">
+              <Icon name="AlertCircle" size={18} />
+              <p>{errors.timeSlot}</p>
             </div>
           )}
 
-          {/* Professional */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Profesional <span className="text-red-500">*</span>
-            </label>
-            <Input
-              placeholder="Nombre del profesional"
-              value={formData?.professional}
-              onChange={(e) => handleInputChange('professional', e?.target?.value)}
-              className={errors?.professional ? 'border-red-300' : ''}
-            />
-            {errors?.professional && (
-              <p className="mt-1 text-sm text-red-600">{errors?.professional}</p>
-            )}
-          </div>
+          <div className="space-y-4">
+            {/* Fecha */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <Icon name="Calendar" size={16} className="text-primary" /> Fecha
+              </label>
+              <Input 
+                type="date" 
+                value={formData.date} 
+                onChange={(e) => handleInputChange('date', e.target.value)} 
+                error={errors.date} 
+              />
+            </div>
 
-          {/* Purpose */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Uso Previsto <span className="text-red-500">*</span>
-            </label>
-            <Input
-              placeholder="Describe el uso del espacio"
-              value={formData?.purpose}
-              onChange={(e) => handleInputChange('purpose', e?.target?.value)}
-              className={errors?.purpose ? 'border-red-300' : ''}
-            />
-            {errors?.purpose && (
-              <p className="mt-1 text-sm text-red-600">{errors?.purpose}</p>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notas Adicionales
-            </label>
-            <textarea
-              placeholder="Información adicional o requerimientos especiales"
-              value={formData?.notes}
-              onChange={(e) => handleInputChange('notes', e?.target?.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary resize-none"
-              rows="3"
-            />
-          </div>
-
-          {/* Cost Summary */}
-          {estimatedCost > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-medium text-green-900 mb-2">Resumen de Costo</h4>
-              <div className="text-sm text-green-700 space-y-1">
-                <div className="flex justify-between"><span>Tarifa por hora:</span><span>${space?.hourlyRate}</span></div>
-                <div className="flex justify-between">
-                  <span>Duración estimada:</span>
-                  <span>{(estimatedCost / (space?.hourlyRate || 1)).toFixed(2)} horas</span>
+            {/* Rango de Horas - Diseño Corregido para legibilidad */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">Desde</label>
+                <div className="relative">
+                  <select 
+                    className="w-full p-2 bg-white border border-gray-300 rounded-md text-gray-900 shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer appearance-none"
+                    value={formData.startTime} 
+                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                  >
+                    {timeSlots.map(t => <option key={t} value={t} className="bg-white text-gray-900">{t}</option>)}
+                  </select>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <Icon name="ChevronDown" size={14} />
+                  </div>
                 </div>
-                <div className="flex justify-between font-semibold border-t border-green-300 pt-2">
-                  <span>Total estimado:</span><span>${estimatedCost}</span>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">Hasta</label>
+                <div className="relative">
+                  <select 
+                    className={`w-full p-2 bg-white border rounded-md text-gray-900 shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer appearance-none ${
+                      errors.endTime ? 'border-red-500' : 'border-gray-300'
+                    }`} 
+                    value={formData.endTime} 
+                    onChange={(e) => handleInputChange('endTime', e.target.value)}
+                  >
+                    {timeSlots.map(t => <option key={t} value={t} className="bg-white text-gray-900">{t}</option>)}
+                  </select>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <Icon name="ChevronDown" size={14} />
+                  </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4">
-            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" className="flex-1">Confirmar Reserva</Button>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Especialista</label>
+              <Input 
+                placeholder="Nombre del médico" 
+                value={formData.professional} 
+                onChange={(e) => handleInputChange('professional', e.target.value)} 
+                error={errors.professional} 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700">Motivo</label>
+              <Input 
+                placeholder="Ej: Consulta pediátrica" 
+                value={formData.purpose} 
+                onChange={(e) => handleInputChange('purpose', e.target.value)} 
+                error={errors.purpose} 
+              />
+            </div>
           </div>
+
+          {/* Resumen Financiero con Comisión del 5% Healtng */}
+          {subtotal > 0 && (
+            <div className="mt-8 space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Alquiler ({ (subtotal/space?.hourlyRate).toFixed(1) }h)</span>
+                <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 italic">
+                <span className="flex items-center gap-1.5">
+                    Comisión Healtng (5%) 
+                    <Icon name="Info" size={12} className="text-gray-400" />
+                </span>
+                <span>- {formatCurrency(healtngFee)}</span>
+              </div>
+              <div className="pt-3 border-t border-dashed border-gray-300 flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ingreso Neto Clínica</p>
+                  <p className="text-2xl font-black text-primary">{formatCurrency(netEarnings)}</p>
+                </div>
+                <Icon name="TrendingUp" size={24} className="text-green-500 mb-1" />
+              </div>
+            </div>
+          )}
         </form>
+
+        <div className="p-6 border-t bg-gray-50 flex gap-3">
+          <Button variant="outline" className="flex-1 py-6 rounded-xl" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button className="flex-1 py-6 rounded-xl shadow-lg shadow-primary/20" onClick={handleSubmit}>
+            Confirmar Reserva
+          </Button>
+        </div>
       </div>
     </div>
   );

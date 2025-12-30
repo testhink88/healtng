@@ -1,21 +1,67 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="es-VE">
 <head>
   <meta charset="utf-8" />
-  <title>healtng</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="description" content="Web site created using create-react-app" />
-  <link rel="icon" href="/favicon.ico" />
+  <title>Healtng — Tu salud, sin vueltas</title>
+
+  <!-- Viewport móvil con soporte para notch/safe areas -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="format-detection" content="telephone=no, email=no, address=no" />
+  <meta name="handheldfriendly" content="true" />
+
+  <!-- PWA / Theming -->
+  <meta name="application-name" content="Healtng" />
+  <meta name="theme-color" content="#0A46E4" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- SEO básico -->
+  <meta name="description" content="Healtng: busca y gestiona servicios y productos de salud de forma simple, en un solo lugar." />
+  <meta name="keywords" content="healtng, salud digital, citas médicas, farmacia, laboratorio, clínica, marketplace de salud" />
+
+  <!-- Open Graph / Social -->
+  <meta property="og:title" content="Healtng — Tu salud, sin vueltas" />
+  <meta property="og:description" content="Agenda, compara y encuentra servicios y productos de salud en un solo lugar." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="/" />
+  <meta property="og:image" content="/assets/og-cover.png" />
+
+  <!-- Icons & Manifest -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
-<script type="module" src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fhealtng3797back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8"></script>
+
+  <!-- (Opcional) fuentes: mantén solo si realmente usas Google Fonts -->
+  <!-- <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin> -->
+  <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> -->
+
+  <!-- Rocket (respetando tu configuración actual) -->
+  <script type="module" src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fhealtng3797back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8"></script>
 </head>
 
 <body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div class="dhiwise-code" id="root"></div>
-  <script type="module" src="/src/index.jsx"></script>
-</body>
+  <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
 
+  <!-- Root App -->
+  <div id="root" class="dhiwise-code"></div>
+
+  <!-- Entrada Vite/React -->
+  <script type="module" src="/src/index.jsx"></script>
+
+  <!-- Pequeña corrección para 100dvh en iOS Safari (opcional, si lo necesitas) -->
+  <script>
+    // Establece una variable CSS con la altura real del viewport en móviles
+    (function () {
+      const setAppHeight = () => {
+        document.documentElement.style.setProperty('--app-dvh', `${window.innerHeight * 0.01}px`);
+      };
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+    })();
+  </script>
+</body>
 </html>

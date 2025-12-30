@@ -2,17 +2,16 @@
 // Catálogo de capacidades y mapeo Negocio -> capacidades
 
 export const CAPABILITIES = {
-  RX_INTAKE:       "rx_intake",        // intake/validación/dispensa de recetas
-  LAB_ORDERS:      "lab_orders",       // gestión de órdenes de laboratorio/imagen
-  OPTICS_ORDERS:   "optics_orders",    // órdenes de óptica
-  APPOINTMENTS:    "appointments",     // agenda/turnos/servicios
-  B2B:             "b2b",              // compras B2B / abastecimiento
-  ANALYTICS:       "analytics",        // KPIs/BI
-  AUTHORIZATIONS:  "authorizations",   // autorizaciones (aseguradora)
-  CLAIMS:          "claims",           // siniestros/claims (aseguradora)
+  RX_INTAKE:       "rx_intake",
+  LAB_ORDERS:      "lab_orders",
+  OPTICS_ORDERS:   "optics_orders",
+  APPOINTMENTS:    "appointments",
+  B2B:             "b2b",
+  ANALYTICS:       "analytics",
+  AUTHORIZATIONS:  "authorizations",
+  CLAIMS:          "claims",
 };
 
-// *** LISTA COMPLETA de tipos de negocio ***
 export const BUSINESS_TYPES = [
   "Consultorio Médico Privado",
   "Clínica o Centro de Salud Integral",
@@ -43,7 +42,6 @@ export const BUSINESS_TYPES = [
 
 const C = CAPABILITIES;
 
-// Mapa Negocio -> capacidades (extensible)
 export const capabilitiesByBusinessType = {
   "Farmacia":                          [C?.RX_INTAKE, C?.B2B, C?.ANALYTICS],
   "Droguería":                         [C?.RX_INTAKE, C?.B2B, C?.ANALYTICS],
@@ -74,37 +72,53 @@ export const capabilitiesByBusinessType = {
   "ONG o Fundación de Salud":                      [C?.ANALYTICS],
   "Funeraria / Servicios de Previsión":           [C?.ANALYTICS],
 
-  // *** ASEGURADORA ***
   "Empresa de Seguros de Salud":      [C?.AUTHORIZATIONS, C?.CLAIMS, C?.ANALYTICS, C?.B2B],
 };
 
 // Helpers
 const STORAGE_KEY = "providerProfile";
+
 export function getproviderProfile() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  } catch {
+    return null;
+  }
 }
+
 export function setproviderProfile(partial) {
   const cur = getproviderProfile() || {};
   const next = { ...cur, ...partial };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
 }
+
 export function getCapabilitiesForCurrentprovider() {
   const p = getproviderProfile();
   const type = p?.businessType || "";
   return capabilitiesByBusinessType?.[type] || [C?.ANALYTICS];
 }
-function resolveCapabilities(...args) {
-  // eslint-disable-next-line no-console
-  console.warn('Placeholder: resolveCapabilities is not implemented yet.', args);
+
+export function resolveCapabilities(...args) {
+  console.warn("Placeholder: resolveCapabilities is not implemented yet.", args);
   return null;
 }
 
-export { resolveCapabilities };
-function capabilitySidebarItems(...args) {
-  // eslint-disable-next-line no-console
-  console.warn('Placeholder: capabilitySidebarItems is not implemented yet.', args);
+export function capabilitySidebarItems(...args) {
+  console.warn("Placeholder: capabilitySidebarItems is not implemented yet.", args);
   return null;
 }
 
-export { capabilitySidebarItems };
+// ✅ Default export para compatibilidad con barrels
+const capabilityMap = {
+  CAPABILITIES,
+  BUSINESS_TYPES,
+  capabilitiesByBusinessType,
+  getproviderProfile,
+  setproviderProfile,
+  getCapabilitiesForCurrentprovider,
+  resolveCapabilities,
+  capabilitySidebarItems,
+};
+
+export default capabilityMap;

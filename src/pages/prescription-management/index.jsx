@@ -1,3 +1,4 @@
+// src/pages/prescription-management/index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -11,7 +12,6 @@ import PrescriptionFilters from "@/pages/prescription-management/components/Pres
 import PrescriptionTabs from "@/pages/prescription-management/components/PrescriptionTabs";
 import PharmacyFinderModal from "@/pages/prescription-management/components/PharmacyFinderModal";
 import RenewalRequestModal from "@/pages/prescription-management/components/RenewalRequestModal";
-
 
 const SPECIALTIES = ["Medicina General", "Pediatría", "Cardiología", "Dermatología"];
 const DOCTORS = ["Dr. Carlos Mendoza", "Dra. Ana Rodríguez", "Dr. Luis García", "Dr. María González"];
@@ -62,17 +62,21 @@ const PrescriptionManagement = () => {
   const location = useLocation();
   const qs = new URLSearchParams(location.search);
 
-  // ===== Layout: fuerza clínica si ?scope=clinic, en otro caso usa el rol guardado (default doctor)
+  // ===== Layout: si ?scope=clinic fuerza clínica; si no, usa rol guardado (default patient)
   const scopeClinic = qs.get("scope") === "clinic";
-  const storedRole = (localStorage.getItem("userRole") || "doctor").toLowerCase();
-  const userRole = scopeClinic ? "clinic" : storedRole; // <- así verás Header/Sidebar de médico cuando el rol sea doctor
+  const storedRole = (localStorage.getItem("userRole") || "patient").toLowerCase();
+  const userRole = scopeClinic ? "clinic" : storedRole;
+
+  const isPatient = userRole === "patient";
+  const isClinic = userRole === "clinic";
+  const isDoctor = userRole === "doctor" || userRole === "specialist";
 
   // ===== UI
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const searchRef = useRef(null);
 
-  // ===== Estado (paciente)
+  // ===== Estado (paciente/doctor)
   const [activeTab, setActiveTab] = useState(qs.get("tab") || localStorage.getItem("rx_tab") || "issued");
   const [searchQuery, setSearchQuery] = useState(qs.get("q") || "");
   const [sortBy, setSortBy] = useState(qs.get("sort") || "date-desc");
@@ -88,7 +92,7 @@ const PrescriptionManagement = () => {
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
 
-  // ===== Datos (mock con patientId para navegar a ficha)
+  // ===== Datos mock
   const [prescriptions, setPrescriptions] = useState([]);
   useEffect(() => {
     setPrescriptions([
@@ -291,10 +295,15 @@ const PrescriptionManagement = () => {
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
           {/* Migas */}
           <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-            {userRole === "clinic" ? (
+            {isClinic ? (
               <Button variant="ghost" className="px-2 py-1" onClick={() => navigate("/clinic-dashboard")}>
                 <Icon name="Home" size={16} className="mr-2" />
                 Panel Principal
+              </Button>
+            ) : isPatient ? (
+              <Button variant="ghost" className="px-2 py-1" onClick={() => navigate("/patient-dashboard")}>
+                <Icon name="Home" size={16} className="mr-2" />
+                Panel del Paciente
               </Button>
             ) : (
               <Button variant="ghost" className="px-2 py-1" onClick={() => navigate("/professional-dashboard")}>
@@ -303,21 +312,27 @@ const PrescriptionManagement = () => {
               </Button>
             )}
             <Icon name="ChevronRight" size={14} />
-            <span className="text-foreground font-medium">Gestión de Recetas</span>
+            <span className="text-foreground font-medium">
+              {isPatient ? "Mis Recetas" : "Gestión de Recetas"}
+            </span>
           </div>
 
           {/* Encabezado y acciones */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Gestión de Recetas</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                {isPatient ? "Mis Recetas" : "Gestión de Recetas"}
+              </h1>
               <p className="text-muted-foreground">
-                {userRole === "clinic"
+                {isClinic
                   ? "Recetas del centro — filtra por especialidad y médico"
-                  : "Administra tus prescripciones y encuentra farmacias cercanas"}
+                  : isPatient
+                  ? "Administra tus prescripciones, renueva y encuentra farmacias cercanas"
+                  : "Administra las prescripciones de tus pacientes y gestiona dispensas"}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {userRole !== "clinic" && (
+              {!isClinic && (
                 <Button variant="outline" onClick={() => navigate("/medical-history")} className="gap-2">
                   <Icon name="FileText" size={16} />
                   Historial Médico

@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Header from '@/components/ui/Header';
-import Sidebar from '@/components/ui/Sidebar';
-import GlobalSearch from '@/components/ui/GlobalSearch';
-import Icon from '@/components/AppIcon';
-import Button from '@/components/ui/Button';
+// src/pages/b2c-marketplace/index.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-// Import marketplace components
-import FilterPanel from '../marketplace/components/FilterPanel';
-import ShoppingCart from '../marketplace/components/ShoppingCart';
-import ProductGrid from '../marketplace/components/ProductGrid';
-import QuickFilters from '../marketplace/components/QuickFilters';
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
+import GlobalSearch from "@/components/ui/GlobalSearch";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
-// Import payment components
+// API central del marketplace
+import { getMarketplaceProducts } from "@/api/marketplace/marketplace";
 
-
+// Componentes de marketplace
+import FilterPanel from "../marketplace/components/FilterPanel";
+import ShoppingCart from "../marketplace/components/ShoppingCart";
+import ProductGrid from "../marketplace/components/ProductGrid";
+import QuickFilters from "../marketplace/components/QuickFilters";
 
 const B2CMarketplace = () => {
   const navigate = useNavigate();
-  const [userRole] = useState('patient');
+
+  const [userRole] = useState("patient");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -29,269 +31,123 @@ const B2CMarketplace = () => {
   const [cartItems, setCartItems] = useState([]);
   const [showModeSwitch, setShowModeSwitch] = useState(false);
 
-  // Check if user can switch modes (Professional or Clinic)
-  useEffect(() => {
-    const currentRole = localStorage.getItem('userRole');
-    setShowModeSwitch(currentRole === 'professional' || currentRole === 'clinic');
-  }, []);
-
+  // Filtros
   const [filters, setFilters] = useState({
-    category: 'all',
-    provider: 'all',
+    category: "all",
+    provider: "all",
     priceRange: { min: 0, max: 1000 },
-    availability: 'all',
+    availability: "all",
     insuranceCompatible: false,
-    sortBy: 'relevance',
-    search: '',
+    sortBy: "relevance",
+    search: "",
     freeShipping: false,
     newProducts: false,
-    onSale: false
+    onSale: false,
   });
 
-  // Mock B2C products data - focused on individual consumer purchases
-  const [allProducts] = useState([
-    {
-      id: 1,
-      name: "Losartán 50mg - Antihipertensivo",
-      category: "medications",
-      provider: "Farmacia Central",
-      price: 25.50,
-      priceVES: 918.00, // Mock VES equivalent
-      discount: 15,
-      stock: 45,
-      rating: 4.8,
-      deliveryTime: "2-3 días",
-      image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
-      insuranceCompatible: true,
-      isNew: false,
-      availableFor: ['b2c', 'b2b'],
-      description: "Medicamento antihipertensivo para el control de la presión arterial alta",
-      prescription: true,
-      genericAlternative: "Losartán Genérico",
-      sideEffects: "Mareos, dolor de cabeza leve",
-      dosage: "Una tableta diaria"
-    },
-    {
-      id: 2,
-      name: "Tensiómetro Digital Automático",
-      category: "medical-equipment",
-      provider: "MediSupply VE",
-      price: 89.99,
-      priceVES: 3239.64,
-      discount: 0,
-      stock: 12,
-      rating: 4.6,
-      deliveryTime: "1-2 días",
-      image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400",
-      insuranceCompatible: false,
-      isNew: true,
-      availableFor: ['b2c'],
-      description: "Monitor de presión arterial digital con pantalla LCD grande",
-      prescription: false,
-      warranty: "2 años de garantía",
-      features: "Memoria para 90 mediciones, detección arritmia"
-    },
-    {
-      id: 3,
-      name: "Paracetamol 500mg (100 tabletas)",
-      category: "medications",
-      provider: "Farmacia Central",
-      price: 12.75,
-      priceVES: 459.00,
-      discount: 0,
-      stock: 156,
-      rating: 4.6,
-      deliveryTime: "1-2 días",
-      image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
-      insuranceCompatible: true,
-      isNew: false,
-      availableFor: ['b2c', 'b2b'],
-      description: "Analgésico y antipirético para dolor y fiebre",
-      prescription: false,
-      dosage: "1-2 tabletas cada 6-8 horas",
-      maxDaily: "Máximo 8 tabletas diarias"
-    },
-    {
-      id: 4,
-      name: "Vitamina D3 2000 UI (60 cápsulas)",
-      category: "wellness",
-      provider: "Wellness Store",
-      price: 18.50,
-      priceVES: 666.00,
-      discount: 0,
-      stock: 89,
-      rating: 4.4,
-      deliveryTime: "2-3 días",
-      image: "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400",
-      insuranceCompatible: false,
-      isNew: false,
-      availableFor: ['b2c'],
-      description: "Suplemento de vitamina D3 para fortalecer el sistema inmune",
-      prescription: false,
-      dosage: "1 cápsula diaria con alimentos",
-      benefits: "Fortalece huesos y sistema inmune"
-    },
-    {
-      id: 5,
-      name: "Glucómetro con 50 Tiras Reactivas",
-      category: "diagnostics",
-      provider: "Laboratorio Nacional",
-      price: 45.75,
-      priceVES: 1647.00,
-      discount: 10,
-      stock: 28,
-      rating: 4.7,
-      deliveryTime: "2-4 días",
-      image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400",
-      insuranceCompatible: true,
-      isNew: false,
-      availableFor: ['b2c', 'b2b'],
-      description: "Medidor de glucosa en sangre con tiras reactivas incluidas",
-      prescription: false,
-      warranty: "5 años de garantía",
-      includes: "Lancetas, estuche de transporte"
-    },
-    {
-      id: 6,
-      name: "Termómetro Infrarrojo Sin Contacto",
-      category: "medical-equipment",
-      provider: "MediSupply VE",
-      price: 32.99,
-      priceVES: 1187.64,
-      discount: 0,
-      stock: 67,
-      rating: 4.5,
-      deliveryTime: "1-2 días",
-      image: "https://images.unsplash.com/photo-1584432810601-6c7f27d2362b?w=400",
-      insuranceCompatible: false,
-      isNew: true,
-      availableFor: ['b2c'],
-      description: "Termómetro digital infrarrojo para medición sin contacto",
-      prescription: false,
-      features: "Medición rápida 1 segundo, memoria 32 lecturas",
-      accuracy: "±0.2°C precisión"
-    },
-    {
-      id: 7,
-      name: "Multivitamínico Completo (90 cápsulas)",
-      category: "wellness",
-      provider: "Wellness Store",
-      price: 24.99,
-      priceVES: 899.64,
-      discount: 20,
-      stock: 45,
-      rating: 4.5,
-      deliveryTime: "2-4 días",
-      image: "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400",
-      insuranceCompatible: false,
-      isNew: true,
-      availableFor: ['b2c'],
-      description: "Complejo multivitamínico para nutrición diaria",
-      prescription: false,
-      dosage: "1 cápsula diaria con el desayuno",
-      contains: "23 vitaminas y minerales esenciales"
-    },
-    {
-      id: 8,
-      name: "Oxímetro de Pulso Digital",
-      category: "diagnostics",
-      provider: "Laboratorio Nacional",
-      price: 28.99,
-      priceVES: 1043.64,
-      discount: 15,
-      stock: 34,
-      rating: 4.7,
-      deliveryTime: "2-3 días",
-      image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400",
-      insuranceCompatible: true,
-      isNew: false,
-      availableFor: ['b2c', 'b2b'],
-      description: "Medidor de saturación de oxígeno y frecuencia cardíaca",
-      prescription: false,
-      features: "Display OLED, apagado automático",
-      accuracy: "SpO2: ±2%, Pulso: ±2bpm"
-    }
-  ]);
-
+  // Productos (desde el API mock)
+  const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [displayedProducts, setDisplayedProducts] = useState([]);
 
-  // Filter B2C products
+  // ¿El usuario actual puede cambiar a modo B2B?
   useEffect(() => {
-    let filtered = allProducts?.filter(product => 
-      product?.availableFor?.includes('b2c')
+    const currentRole = localStorage.getItem("userRole");
+    setShowModeSwitch(
+      currentRole === "professional" || currentRole === "clinic"
+    );
+  }, []);
+
+  // Cargar catálogo desde la capa api/ (solo B2C)
+  useEffect(() => {
+    const products = getMarketplaceProducts("b2c");
+    setAllProducts(products);
+  }, []);
+
+  // Filtro + ordenamiento sobre allProducts
+  useEffect(() => {
+    let filtered = allProducts?.filter((product) =>
+      product?.availableFor?.includes("b2c")
     );
 
-    // Apply search filter
     if (filters?.search) {
-      filtered = filtered?.filter(product =>
-        product?.name?.toLowerCase()?.includes(filters?.search?.toLowerCase()) ||
-        product?.description?.toLowerCase()?.includes(filters?.search?.toLowerCase()) ||
-        product?.provider?.toLowerCase()?.includes(filters?.search?.toLowerCase())
+      const q = filters.search.toLowerCase();
+      filtered = filtered?.filter(
+        (product) =>
+          product?.name?.toLowerCase()?.includes(q) ||
+          product?.description?.toLowerCase()?.includes(q) ||
+          product?.provider?.toLowerCase()?.includes(q)
       );
     }
 
-    // Apply category filter
-    if (filters?.category !== 'all') {
-      filtered = filtered?.filter(product => product?.category === filters?.category);
+    if (filters?.category !== "all") {
+      filtered = filtered?.filter(
+        (product) => product?.category === filters?.category
+      );
     }
 
-    // Apply provider filter
-    if (filters?.provider !== 'all') {
-      filtered = filtered?.filter(product => product?.provider === filters?.provider);
+    if (filters?.provider !== "all") {
+      filtered = filtered?.filter(
+        (product) => product?.provider === filters?.provider
+      );
     }
 
-    // Apply availability filter
-    if (filters?.availability !== 'all') {
-      if (filters?.availability === 'in-stock') {
-        filtered = filtered?.filter(product => product?.stock > 5);
-      } else if (filters?.availability === 'low-stock') {
-        filtered = filtered?.filter(product => product?.stock > 0 && product?.stock <= 5);
+    if (filters?.availability !== "all") {
+      if (filters?.availability === "in-stock") {
+        filtered = filtered?.filter((product) => product?.stock > 5);
+      } else if (filters?.availability === "low-stock") {
+        filtered = filtered?.filter(
+          (product) => product?.stock > 0 && product?.stock <= 5
+        );
       }
     }
 
-    // Apply insurance filter
     if (filters?.insuranceCompatible) {
-      filtered = filtered?.filter(product => product?.insuranceCompatible);
+      filtered = filtered?.filter((product) => product?.insuranceCompatible);
     }
 
-    // Apply special filters
     if (filters?.newProducts) {
-      filtered = filtered?.filter(product => product?.isNew);
+      filtered = filtered?.filter((product) => product?.isNew);
     }
 
     if (filters?.onSale) {
-      filtered = filtered?.filter(product => product?.discount > 0);
+      filtered = filtered?.filter((product) => product?.discount > 0);
     }
 
-    // Price range filter
-    filtered = filtered?.filter(product => {
-      const price = product?.discount > 0 
-        ? product?.price * (1 - product?.discount / 100)
-        : product?.price;
-      return price >= filters?.priceRange?.min && price <= filters?.priceRange?.max;
+    filtered = filtered?.filter((product) => {
+      const basePrice =
+        product?.discount > 0
+          ? product?.price * (1 - product?.discount / 100)
+          : product?.price;
+      return (
+        basePrice >= filters?.priceRange?.min &&
+        basePrice <= filters?.priceRange?.max
+      );
     });
 
-    // Sort products
     switch (filters?.sortBy) {
-      case 'price-low':
+      case "price-low":
         filtered?.sort((a, b) => {
-          const priceA = a?.discount > 0 ? a?.price * (1 - a?.discount / 100) : a?.price;
-          const priceB = b?.discount > 0 ? b?.price * (1 - b?.discount / 100) : b?.price;
+          const priceA =
+            a?.discount > 0 ? a?.price * (1 - a?.discount / 100) : a?.price;
+          const priceB =
+            b?.discount > 0 ? b?.price * (1 - b?.discount / 100) : b?.price;
           return priceA - priceB;
         });
         break;
-      case 'price-high':
+      case "price-high":
         filtered?.sort((a, b) => {
-          const priceA = a?.discount > 0 ? a?.price * (1 - a?.discount / 100) : a?.price;
-          const priceB = b?.discount > 0 ? b?.price * (1 - b?.discount / 100) : b?.price;
+          const priceA =
+            a?.discount > 0 ? a?.price * (1 - a?.discount / 100) : a?.price;
+          const priceB =
+            b?.discount > 0 ? b?.price * (1 - b?.discount / 100) : b?.price;
           return priceB - priceA;
         });
         break;
-      case 'rating':
+      case "rating":
         filtered?.sort((a, b) => b?.rating - a?.rating);
         break;
-      case 'newest':
+      case "newest":
         filtered?.sort((a, b) => b?.isNew - a?.isNew);
         break;
       default:
@@ -303,13 +159,14 @@ const B2CMarketplace = () => {
     setCurrentPage(1);
   }, [filters, allProducts]);
 
-  // Simulate loading
+  // Simular loading al cambiar filtros
   useEffect(() => {
     setLoading(true);
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, [filters]);
 
+  // Paginación "Ver más"
   const handleLoadMore = () => {
     setLoadingMore(true);
     setTimeout(() => {
@@ -317,66 +174,75 @@ const B2CMarketplace = () => {
       const startIndex = (nextPage - 1) * 12;
       const endIndex = startIndex + 12;
       const newProducts = filteredProducts?.slice(startIndex, endIndex);
-      setDisplayedProducts(prev => [...prev, ...newProducts]);
+      setDisplayedProducts((prev) => [...prev, ...newProducts]);
       setCurrentPage(nextPage);
       setLoadingMore(false);
     }, 1000);
   };
 
-  const handleAddToCart = async (product, quantity) => {
-    const existingItem = cartItems?.find(item => item?.id === product?.id);
-    
+  // Cart (B2C)
+  const handleAddToCart = (product, quantity) => {
+    const existingItem = cartItems?.find((item) => item?.id === product?.id);
+
     if (existingItem) {
-      setCartItems(prev =>
-        prev?.map(item =>
+      setCartItems((prev) =>
+        prev?.map((item) =>
           item?.id === product?.id
-            ? { ...item, quantity: Math.min(item?.quantity + quantity, product?.stock) }
+            ? {
+                ...item,
+                quantity: Math.min(
+                  item?.quantity + quantity,
+                  product?.stock || item?.quantity + quantity
+                ),
+              }
             : item
         )
       );
     } else {
-      setCartItems(prev => [...prev, { ...product, quantity }]);
+      setCartItems((prev) => [...prev, { ...product, quantity }]);
     }
   };
 
   const handleUpdateCartQuantity = (itemId, newQuantity) => {
-    setCartItems(prev =>
-      prev?.map(item =>
+    setCartItems((prev) =>
+      prev?.map((item) =>
         item?.id === itemId ? { ...item, quantity: newQuantity } : item
       )
     );
   };
 
   const handleRemoveFromCart = (itemId) => {
-    setCartItems(prev => prev?.filter(item => item?.id !== itemId));
+    setCartItems((prev) => prev?.filter((item) => item?.id !== itemId));
   };
 
-  const handleCheckout = async (items) => {
-    // Process B2C checkout with credit card and Pago Móvil
-    navigate('/payment-processing', {
+  const handleCheckout = (items) => {
+    navigate("/payment-processing", {
       state: {
         orderData: {
-          items: items?.map(item => ({
+          items: items?.map((item) => ({
             name: item?.name,
             description: item?.description,
-            price: item?.discount > 0 ? item?.price * (1 - item?.discount / 100) : item?.price,
+            price:
+              item?.discount > 0
+                ? item?.price * (1 - item?.discount / 100)
+                : item?.price,
             quantity: item?.quantity,
-            icon: 'ShoppingBag'
+            icon: "ShoppingBag",
           })),
           orderNumber: `B2C-${Date.now()}`,
-          date: new Date()?.toLocaleDateString('es-VE'),
-          shipping: 5.00,
-          marketplaceType: 'b2c'
-        }
-      }
+          date: new Date()?.toLocaleDateString("es-VE"),
+          shipping: 5.0,
+          marketplaceType: "b2c",
+        },
+      },
     });
   };
 
   const handleSwitchMode = () => {
-    navigate('/marketplace/b2b');
+    navigate("/marketplace/b2b");
   };
 
-  const totalPages = Math.ceil(filteredProducts?.length / 12);
+  const totalPages = Math.ceil((filteredProducts?.length || 0) / 12);
   const hasMore = currentPage < totalPages;
 
   return (
@@ -392,11 +258,14 @@ const B2CMarketplace = () => {
         isMobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
-      <main className={`pt-16 transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+
+      <main
+        className={`pt-16 transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+        }`}
+      >
         <div className="p-4 lg:p-6">
-          {/* Page Header */}
+          {/* Header de página */}
           <div className="mb-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
@@ -412,8 +281,8 @@ const B2CMarketplace = () => {
                   Medicamentos y productos de salud para consumo personal
                 </p>
               </div>
-              
-              {/* Mode Switch - Only for Professional/Clinic users */}
+
+              {/* Switch B2C/B2B solo para roles Pro/Clínica */}
               {showModeSwitch && (
                 <div className="flex items-center gap-3">
                   <Button
@@ -428,11 +297,15 @@ const B2CMarketplace = () => {
               )}
             </div>
 
-            {/* Mode Switch Context */}
+            {/* Banner modo B2C */}
             {showModeSwitch && (
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Icon name="Users" size={16} color="var(--color-blue-600)" />
+                  <Icon
+                    name="Users"
+                    size={16}
+                    color="var(--color-blue-600)"
+                  />
                   <span className="text-sm font-medium text-blue-800">
                     Modo: Compra para Paciente (B2C)
                   </span>
@@ -447,7 +320,7 @@ const B2CMarketplace = () => {
               </div>
             )}
 
-            {/* Global Search */}
+            {/* Búsqueda global */}
             <div className="w-full mt-4">
               <GlobalSearch
                 userRole={userRole}
@@ -457,31 +330,35 @@ const B2CMarketplace = () => {
             </div>
           </div>
 
-          {/* Quick Filters */}
+          {/* Filtros rápidos */}
           <QuickFilters
             activeFilters={filters}
             onFilterChange={setFilters}
-            resultCount={filteredProducts?.length}
+            resultCount={filteredProducts?.length || 0}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Filter Panel */}
+            {/* Panel de filtros */}
             <div className="lg:col-span-1">
               <FilterPanel
                 filters={filters}
                 onFiltersChange={setFilters}
-                resultCount={filteredProducts?.length}
+                resultCount={filteredProducts?.length || 0}
                 isOpen={filterPanelOpen}
                 onToggle={() => setFilterPanelOpen(!filterPanelOpen)}
               />
             </div>
 
-            {/* Product Grid */}
+            {/* Grid de productos */}
             <div className="lg:col-span-3">
-              {/* B2C Specific Features */}
+              {/* Banner B2C */}
               <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <Icon name="Shield" size={16} color="var(--color-green-600)" />
+                  <Icon
+                    name="Shield"
+                    size={16}
+                    color="var(--color-green-600)"
+                  />
                   <span className="text-sm font-medium text-green-800">
                     Compra Segura para Pacientes
                   </span>
@@ -498,7 +375,9 @@ const B2CMarketplace = () => {
                 products={displayedProducts}
                 loading={loading || loadingMore}
                 onAddToCart={handleAddToCart}
-                onViewDetails={(product) => console.log('Ver detalles:', product)}
+                onViewDetails={(product) =>
+                  console.log("Ver detalles:", product)
+                }
                 onLoadMore={handleLoadMore}
                 hasMore={hasMore}
                 currentPage={currentPage}
@@ -509,8 +388,8 @@ const B2CMarketplace = () => {
           </div>
         </div>
       </main>
-      
-      {/* Shopping Cart */}
+
+      {/* Carrito flotante */}
       <ShoppingCart
         items={cartItems}
         isOpen={cartOpen}
@@ -521,7 +400,6 @@ const B2CMarketplace = () => {
         marketplaceType="b2c"
       />
 
-      {/* Floating Cart Button */}
       {cartItems?.length > 0 && (
         <button
           onClick={() => setCartOpen(true)}

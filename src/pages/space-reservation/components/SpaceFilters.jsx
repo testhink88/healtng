@@ -1,301 +1,393 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Icon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
 
-const SpaceFilters = ({ filters, onFiltersChange, onClearFilters, className = '' }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const Field = ({ label, children }) => (
+  <label className="space-y-1">
+    <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <div>{children}</div>
+  </label>
+);
 
-  const clinicOptions = [
-    { value: '', label: 'Todas las clínicas' },
-    { value: 'clinica-caracas', label: 'Clínica Caracas' },
-    { value: 'hospital-universitario', label: 'Hospital Universitario' },
-    { value: 'centro-medico-valencia', label: 'Centro Médico Valencia' },
-    { value: 'clinica-maracaibo', label: 'Clínica Maracaibo' },
-    { value: 'hospital-militar', label: 'Hospital Militar' }
-  ];
+const Chip = ({ active, children, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-1.5 rounded-full text-sm border transition ${
+      active
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'bg-card border-border text-foreground hover:bg-accent'
+    }`}
+  >
+    {children}
+  </button>
+);
 
-  const spaceTypeOptions = [
-    { value: '', label: 'Todos los tipos' },
-    { value: 'consultorio', label: 'Consultorio General' },
-    { value: 'consultorio-especializado', label: 'Consultorio Especializado' },
-    { value: 'sala-procedimientos', label: 'Sala de Procedimientos' },
-    { value: 'sala-cirugia', label: 'Sala de Cirugía' },
-    { value: 'sala-emergencia', label: 'Sala de Emergencia' },
-    { value: 'laboratorio', label: 'Laboratorio' },
-    { value: 'sala-imagenes', label: 'Sala de Imágenes' }
-  ];
+const TYPE_OPTIONS = [
+  { value: '', label: 'Selecciona…' },
+  { value: 'Consultorio General', label: 'Consultorio General' },
+  { value: 'Consultorio Especializado', label: 'Consultorio Especializado' },
+  { value: 'Sala de Procedimientos', label: 'Sala de Procedimientos' },
+  { value: 'Laboratorio', label: 'Laboratorio' },
+  { value: 'Sala de Imágenes', label: 'Sala de Imágenes' },
+];
 
-  const equipmentOptions = [
-    { value: '', label: 'Sin requisitos específicos' },
-    { value: 'basico', label: 'Equipamiento Básico' },
-    { value: 'cardiologia', label: 'Cardiología' },
-    { value: 'dermatologia', label: 'Dermatología' },
-    { value: 'ginecologia', label: 'Ginecología' },
-    { value: 'pediatria', label: 'Pediatría' },
-    { value: 'cirugia', label: 'Cirugía' },
-    { value: 'imagenes', label: 'Diagnóstico por Imágenes' }
-  ];
+const CAPACITY_OPTIONS = [
+  { value: '', label: 'Selecciona…' },
+  { value: '1-2', label: '1–2' },
+  { value: '3-5', label: '3–5' },
+  { value: '6-9', label: '6–9' },
+  { value: '10+', label: '10+' },
+];
 
-  const capacityOptions = [
-    { value: '', label: 'Cualquier capacidad' },
-    { value: '1-2', label: '1-2 personas' },
-    { value: '3-5', label: '3-5 personas' },
-    { value: '6-10', label: '6-10 personas' },
-    { value: '10+', label: 'Más de 10 personas' }
-  ];
+const AVAILABILITY_OPTIONS = [
+  { value: '', label: 'Cualquiera' },
+  { value: 'inmediata', label: 'Disponible ahora' },
+];
 
-  const availabilityOptions = [
-    { value: '', label: 'Cualquier disponibilidad' },
-    { value: 'inmediata', label: 'Disponible ahora' },
-    { value: 'hoy', label: 'Disponible hoy' },
-    { value: 'esta-semana', label: 'Esta semana' },
-    { value: 'proximo-mes', label: 'Próximo mes' }
-  ];
+const RATING_OPTIONS = [
+  { value: '', label: 'Cualquiera' },
+  { value: '4+', label: '4 estrellas o más' },
+  { value: '4.5+', label: '4.5 estrellas o más' },
+];
 
-  const handleFilterChange = (key, value) => {
-    onFiltersChange({
-      ...filters,
-      [key]: value
-    });
-  };
+const SpaceFilters = ({
+  variant = 'panel', // 'panel' | 'horizontal' | 'toolbar'
+  filters = {},
+  onFiltersChange = () => {},
+  onClearFilters = () => {},
+}) => {
+  const set = (key, val) => onFiltersChange({ ...filters, [key]: val });
 
-  const hasActiveFilters = Object.values(filters)?.some(value => value && value !== '');
+  // ======= Layouts =======
+  const isToolbar = variant === 'toolbar';
+  const containerClass =
+    isToolbar
+      ? 'rounded-lg border border-border bg-card'
+      : variant === 'horizontal'
+        ? 'space-y-4'
+        : 'bg-card border border-border rounded-lg p-4 space-y-4';
 
-  return (
-    <div className={`bg-card border border-border rounded-lg ${className}`}>
-      {/* Mobile Filter Toggle */}
-      <div className="lg:hidden p-4 border-b border-border">
-        <Button
-          variant="outline"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full justify-between"
-          iconName={isExpanded ? "ChevronUp" : "ChevronDown"}
-          iconPosition="right"
-        >
-          Filtros de Búsqueda
-          {hasActiveFilters && (
-            <span className="ml-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-              Activos
+  // Toolbar: dos filas responsivas, estilo como en captura
+  const rowClass = 'grid grid-cols-2 md:grid-cols-4 gap-3 p-4';
+  const dividerClass = 'border-t border-border';
+
+  // Controles reutilizables
+  const Select = (props) => (
+    <select
+      {...props}
+      className={
+        'w-full h-9 rounded-md border border-border bg-background px-3 text-sm ' +
+        (props.className || '')
+      }
+    />
+  );
+
+  const Input = (props) => (
+    <input
+      {...props}
+      className={
+        'w-full h-9 rounded-md border border-border bg-background px-3 text-sm ' +
+        (props.className || '')
+      }
+    />
+  );
+
+  // ======= Render =======
+  if (isToolbar) {
+    return (
+      <div className={containerClass}>
+        {/* Fila 1 */}
+        <div className={rowClass}>
+          <Field label="Fecha desde">
+            <Input
+              type="date"
+              value={filters?.startDate || ''}
+              onChange={(e) => set('startDate', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Fecha hasta">
+            <Input
+              type="date"
+              value={filters?.endDate || ''}
+              onChange={(e) => set('endDate', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Clínica">
+            <Input
+              placeholder="Ej: Clínica Caracas"
+              value={filters?.clinic || ''}
+              onChange={(e) => set('clinic', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Disponibilidad">
+            <Select
+              value={filters?.availability || ''}
+              onChange={(e) => set('availability', e.target.value)}
+            >
+              {AVAILABILITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        {/* Fila 2 */}
+        <div className={`${dividerClass} ${rowClass}`}>
+          <Field label="Tipo de Espacio">
+            <Select
+              value={filters?.spaceType || ''}
+              onChange={(e) => set('spaceType', e.target.value)}
+            >
+              {TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Capacidad">
+            <Select
+              value={filters?.capacity || ''}
+              onChange={(e) => set('capacity', e.target.value)}
+            >
+              {CAPACITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Precio Min (USD)">
+            <Input
+              type="number"
+              placeholder="Mín"
+              value={filters?.minPrice || ''}
+              onChange={(e) => set('minPrice', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Precio Max (USD)">
+            <Input
+              type="number"
+              placeholder="Máx"
+              value={filters?.maxPrice || ''}
+              onChange={(e) => set('maxPrice', e.target.value)}
+            />
+          </Field>
+        </div>
+
+        {/* Filtro por Rating */}
+        <div className={`${dividerClass} ${rowClass}`}>
+          <Field label="Calificación">
+            <Select
+              value={filters?.rating || ''}
+              onChange={(e) => set('rating', e.target.value)}
+            >
+              {RATING_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        {/* Filtros rápidos / acciones */}
+        <div className={`${dividerClass} p-3 md:p-4 flex flex-wrap gap-2 items-center`}>
+          <span className="text-xs font-medium text-muted-foreground">Rápidos:</span>
+
+          <Chip
+            active={filters?.quickFilter === 'disponible-ahora'}
+            onClick={() =>
+              set('quickFilter', filters?.quickFilter === 'disponible-ahora' ? '' : 'disponible-ahora')
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              <Icon name="Bolt" size={14} /> Disponible Ahora
             </span>
-          )}
-        </Button>
-      </div>
-      {/* Filter Content */}
-      <div className={`${isExpanded ? 'block' : 'hidden'} lg:block p-6`}>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-foreground flex items-center">
-            <Icon name="Filter" size={20} className="mr-2" />
-            Filtros de Búsqueda
-          </h3>
-          {hasActiveFilters && (
+          </Chip>
+
+          <Chip
+            active={filters?.quickFilter === 'mejor-precio'}
+            onClick={() =>
+              set('quickFilter', filters?.quickFilter === 'mejor-precio' ? '' : 'mejor-precio')
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              <Icon name="BadgeDollarSign" size={14} /> Mejor Precio
+            </span>
+          </Chip>
+
+          <Chip
+            active={filters?.quickFilter === 'mejor-calificado'}
+            onClick={() =>
+              set('quickFilter', filters?.quickFilter === 'mejor-calificado' ? '' : 'mejor-calificado')
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              <Icon name="Star" size={14} /> Mejor Calificado
+            </span>
+          </Chip>
+
+          <Chip
+            active={filters?.quickFilter === 'aprobacion-inmediata'}
+            onClick={() =>
+              set('quickFilter', filters?.quickFilter === 'aprobacion-inmediata' ? '' : 'aprobacion-inmediata')
+            }
+          >
+            <span className="inline-flex items-center gap-1">
+              <Icon name="ShieldCheck" size={14} /> Aprobación Inmediata
+            </span>
+          </Chip>
+
+          <div className="ml-auto flex gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={onClearFilters}
-              className="text-muted-foreground hover:text-foreground"
+              iconName="Eraser"
+              iconPosition="left"
+              iconSize={14}
             >
-              Limpiar filtros
+              Limpiar
             </Button>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onFiltersChange({ ...filters })}
+              iconName="Funnel"
+              iconPosition="left"
+              iconSize={14}
+            >
+              Aplicar
+            </Button>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Clinic Selection */}
-          <Select
-            label="Clínica"
-            options={clinicOptions}
+  // Variantes anteriores (horizontal/panel) siguen funcionando
+  const gridClass =
+    variant === 'horizontal'
+      ? 'grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'
+      : 'grid grid-cols-1 gap-3';
+
+  return (
+    <div className={containerClass}>
+      <div className={gridClass}>
+        <Field label="Clínica">
+          <Input
+            placeholder="Selecciona…"
             value={filters?.clinic || ''}
-            onChange={(value) => handleFilterChange('clinic', value)}
-            placeholder="Seleccionar clínica"
+            onChange={(e) => set('clinic', e.target.value)}
           />
+        </Field>
 
-          {/* Space Type */}
+        <Field label="Tipo de Espacio">
           <Select
-            label="Tipo de Espacio"
-            options={spaceTypeOptions}
             value={filters?.spaceType || ''}
-            onChange={(value) => handleFilterChange('spaceType', value)}
-            placeholder="Seleccionar tipo"
-          />
+            onChange={(e) => set('spaceType', e.target.value)}
+          >
+            {TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
 
-          {/* Required Equipment */}
-          <Select
-            label="Equipamiento Requerido"
-            options={equipmentOptions}
+        <Field label="Equipamiento Requerido">
+          <Input
+            placeholder="Ej: Ecógrafo"
             value={filters?.equipment || ''}
-            onChange={(value) => handleFilterChange('equipment', value)}
-            placeholder="Seleccionar equipamiento"
+            onChange={(e) => set('equipment', e.target.value)}
           />
+        </Field>
 
-          {/* Capacity */}
+        <Field label="Capacidad">
           <Select
-            label="Capacidad"
-            options={capacityOptions}
             value={filters?.capacity || ''}
-            onChange={(value) => handleFilterChange('capacity', value)}
-            placeholder="Seleccionar capacidad"
+            onChange={(e) => set('capacity', e.target.value)}
+          >
+            {CAPACITY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field label="Precio Min (USD)">
+          <Input
+            type="number"
+            placeholder="Mín"
+            value={filters?.minPrice || ''}
+            onChange={(e) => set('minPrice', e.target.value)}
           />
+        </Field>
 
-          {/* Price Range */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Precio por Hora (USD)</label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                placeholder="Mín"
-                value={filters?.minPrice || ''}
-                onChange={(e) => handleFilterChange('minPrice', e?.target?.value)}
-                min="0"
-                step="5"
-              />
-              <Input
-                type="number"
-                placeholder="Máx"
-                value={filters?.maxPrice || ''}
-                onChange={(e) => handleFilterChange('maxPrice', e?.target?.value)}
-                min="0"
-                step="5"
-              />
-            </div>
-          </div>
-
-          {/* Availability */}
-          <Select
-            label="Disponibilidad"
-            options={availabilityOptions}
-            value={filters?.availability || ''}
-            onChange={(value) => handleFilterChange('availability', value)}
-            placeholder="Seleccionar disponibilidad"
+        <Field label="Precio Max (USD)">
+          <Input
+            type="number"
+            placeholder="Máx"
+            value={filters?.maxPrice || ''}
+            onChange={(e) => set('maxPrice', e.target.value)}
           />
-        </div>
+        </Field>
+      </div>
 
-        {/* Date Range Filter */}
-        <div className="mt-6 pt-6 border-t border-border">
-          <label className="text-sm font-medium text-foreground mb-3 block">Rango de Fechas</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              type="date"
-              label="Fecha de Inicio"
-              value={filters?.startDate || ''}
-              onChange={(e) => handleFilterChange('startDate', e?.target?.value)}
-              min={new Date()?.toISOString()?.split('T')?.[0]}
-            />
-            <Input
-              type="date"
-              label="Fecha de Fin"
-              value={filters?.endDate || ''}
-              onChange={(e) => handleFilterChange('endDate', e?.target?.value)}
-              min={filters?.startDate || new Date()?.toISOString()?.split('T')?.[0]}
-            />
-          </div>
-        </div>
+      <div className="mt-3 flex flex-wrap gap-2 items-center">
+        <Chip
+          active={filters?.quickFilter === 'disponible-ahora'}
+          onClick={() =>
+            set('quickFilter', filters?.quickFilter === 'disponible-ahora' ? '' : 'disponible-ahora')
+          }
+        >
+          <span className="inline-flex items-center gap-1">
+            <Icon name="Bolt" size={14} /> Disponible Ahora
+          </span>
+        </Chip>
 
-        {/* Quick Filters */}
-        <div className="mt-6 pt-6 border-t border-border">
-          <label className="text-sm font-medium text-foreground mb-3 block">Filtros Rápidos</label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={filters?.quickFilter === 'disponible-ahora' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleFilterChange('quickFilter', 
-                filters?.quickFilter === 'disponible-ahora' ? '' : 'disponible-ahora'
-              )}
-            >
-              <Icon name="Clock" size={14} className="mr-1" />
-              Disponible Ahora
-            </Button>
-            <Button
-              variant={filters?.quickFilter === 'mejor-precio' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleFilterChange('quickFilter', 
-                filters?.quickFilter === 'mejor-precio' ? '' : 'mejor-precio'
-              )}
-            >
-              <Icon name="DollarSign" size={14} className="mr-1" />
-              Mejor Precio
-            </Button>
-            <Button
-              variant={filters?.quickFilter === 'mejor-calificado' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleFilterChange('quickFilter', 
-                filters?.quickFilter === 'mejor-calificado' ? '' : 'mejor-calificado'
-              )}
-            >
-              <Icon name="Star" size={14} className="mr-1" />
-              Mejor Calificado
-            </Button>
-            <Button
-              variant={filters?.quickFilter === 'aprobacion-inmediata' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleFilterChange('quickFilter', 
-                filters?.quickFilter === 'aprobacion-inmediata' ? '' : 'aprobacion-inmediata'
-              )}
-            >
-              <Icon name="Zap" size={14} className="mr-1" />
-              Aprobación Inmediata
-            </Button>
-          </div>
-        </div>
+        <Chip
+          active={filters?.quickFilter === 'mejor-precio'}
+          onClick={() =>
+            set('quickFilter', filters?.quickFilter === 'mejor-precio' ? '' : 'mejor-precio')
+          }
+        >
+          <span className="inline-flex items-center gap-1">
+            <Icon name="BadgeDollarSign" size={14} /> Mejor Precio
+          </span>
+        </Chip>
 
-        {/* Active Filters Summary */}
-        {hasActiveFilters && (
-          <div className="mt-6 pt-6 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-foreground">Filtros Activos</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearFilters}
-                iconName="X"
-                iconPosition="left"
-                iconSize={12}
-              >
-                Limpiar Todo
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(filters)?.map(([key, value]) => {
-                if (!value || value === '') return null;
-                
-                let displayValue = value;
-                if (key === 'clinic') {
-                  displayValue = clinicOptions?.find(opt => opt?.value === value)?.label || value;
-                } else if (key === 'spaceType') {
-                  displayValue = spaceTypeOptions?.find(opt => opt?.value === value)?.label || value;
-                } else if (key === 'equipment') {
-                  displayValue = equipmentOptions?.find(opt => opt?.value === value)?.label || value;
-                } else if (key === 'capacity') {
-                  displayValue = capacityOptions?.find(opt => opt?.value === value)?.label || value;
-                } else if (key === 'availability') {
-                  displayValue = availabilityOptions?.find(opt => opt?.value === value)?.label || value;
-                } else if (key === 'minPrice') {
-                  displayValue = `Min: $${value}`;
-                } else if (key === 'maxPrice') {
-                  displayValue = `Max: $${value}`;
-                }
+        <Chip
+          active={filters?.quickFilter === 'mejor-calificado'}
+          onClick={() =>
+            set('quickFilter', filters?.quickFilter === 'mejor-calificado' ? '' : 'mejor-calificado')
+          }
+        >
+          <span className="inline-flex items-center gap-1">
+            <Icon name="Star" size={14} /> Mejor Calificado
+          </span>
+        </Chip>
 
-                return (
-                  <span
-                    key={key}
-                    className="inline-flex items-center bg-primary/10 text-primary text-xs px-2 py-1 rounded-full"
-                  >
-                    {displayValue}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleFilterChange(key, '')}
-                      className="ml-1 w-4 h-4 hover:bg-primary/20"
-                    >
-                      <Icon name="X" size={10} />
-                    </Button>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <Chip
+          active={filters?.quickFilter === 'aprobacion-inmediata'}
+          onClick={() =>
+            set('quickFilter', filters?.quickFilter === 'aprobacion-inmediata' ? '' : 'aprobacion-inmediata')
+          }
+        >
+          <span className="inline-flex items-center gap-1">
+            <Icon name="ShieldCheck" size={14} /> Aprobación Inmediata
+          </span>
+        </Chip>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearFilters}
+          className="ml-auto"
+          iconName="Eraser"
+          iconPosition="left"
+          iconSize={14}
+        >
+          Limpiar
+        </Button>
       </div>
     </div>
   );

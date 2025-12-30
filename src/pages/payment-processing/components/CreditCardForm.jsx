@@ -1,201 +1,143 @@
-import React, { useState } from 'react';
-import Icon from '@/components/AppIcon';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import React, { useState } from "react";
+import Icon from "@/components/AppIcon";
+import Input from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
 
-const CreditCardForm = ({ onSubmit, isProcessing = false, className = '' }) => {
+const CreditCardForm = ({ onSubmit, onCancel, totalAmount = 0, isProcessing = false, className = "" }) => {
   const [formData, setFormData] = useState({
-    cardNumber: '',
-    expiryDate: '',
-    cvc: '',
-    cardholderName: ''
+    email: "",
+    cardNumber: "",
+    expiryDate: "",
+    cvc: "",
+    cardholderName: "",
   });
   const [errors, setErrors] = useState({});
 
   const handleInputChange = (field, value) => {
-    let formattedValue = value;
-    
-    // Format card number with spaces
-    if (field === 'cardNumber') {
-      formattedValue = value?.replace(/\s/g, '')?.replace(/(.{4})/g, '$1 ')?.trim();
-      if (formattedValue?.length > 19) return; // Max 16 digits + 3 spaces
+    let v = value;
+
+    if (field === "cardNumber") {
+      v = value?.replace(/\s/g, "")?.replace(/(.{4})/g, "$1 ")?.trim();
+      if (v?.length > 19) return;
     }
-    
-    // Format expiry date
-    if (field === 'expiryDate') {
-      formattedValue = value?.replace(/\D/g, '')?.replace(/(\d{2})(\d)/, '$1/$2');
-      if (formattedValue?.length > 5) return;
+    if (field === "expiryDate") {
+      v = value?.replace(/\D/g, "")?.replace(/(\d{2})(\d)/, "$1/$2");
+      if (v?.length > 5) return;
     }
-    
-    // Format CVC
-    if (field === 'cvc') {
-      formattedValue = value?.replace(/\D/g, '');
-      if (formattedValue?.length > 4) return;
+    if (field === "cvc") {
+      v = value?.replace(/\D/g, "");
+      if (v?.length > 4) return;
     }
 
-    setFormData(prev => ({ ...prev, [field]: formattedValue }));
-    
-    // Clear error when user starts typing
-    if (errors?.[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    setFormData((p) => ({ ...p, [field]: v }));
+    if (errors[field]) setErrors((p) => ({ ...p, [field]: "" }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Card number validation
-    const cardNumberDigits = formData?.cardNumber?.replace(/\s/g, '');
-    if (!cardNumberDigits) {
-      newErrors.cardNumber = 'Número de tarjeta requerido';
-    } else if (cardNumberDigits?.length < 13 || cardNumberDigits?.length > 19) {
-      newErrors.cardNumber = 'Número de tarjeta inválido';
+  const validate = () => {
+    const e = {};
+    if (!formData.email?.trim() || !/^\S+@\S+\.\S+$/.test(formData.email)) e.email = "Correo inválido";
+    const num = formData.cardNumber?.replace(/\s/g, "");
+    if (!num) e.cardNumber = "Número de tarjeta requerido";
+    else if (num.length < 13 || num.length > 19) e.cardNumber = "Número de tarjeta inválido";
+
+    if (!/^\d{2}\/\d{2}$/.test(formData.expiryDate)) e.expiryDate = "Formato MM/YY";
+    else {
+      const [m, y] = formData.expiryDate.split("/");
+      const now = new Date();
+      const cy = now.getFullYear() % 100;
+      const cm = now.getMonth() + 1;
+      if (+m < 1 || +m > 12) e.expiryDate = "Mes inválido";
+      else if (+y < cy || (+y === cy && +m < cm)) e.expiryDate = "Tarjeta vencida";
     }
-    
-    // Expiry date validation
-    if (!formData?.expiryDate) {
-      newErrors.expiryDate = 'Fecha de vencimiento requerida';
-    } else if (!/^\d{2}\/\d{2}$/?.test(formData?.expiryDate)) {
-      newErrors.expiryDate = 'Formato inválido (MM/YY)';
-    } else {
-      const [month, year] = formData?.expiryDate?.split('/');
-      const currentDate = new Date();
-      const currentYear = currentDate?.getFullYear() % 100;
-      const currentMonth = currentDate?.getMonth() + 1;
-      
-      if (parseInt(month) < 1 || parseInt(month) > 12) {
-        newErrors.expiryDate = 'Mes inválido';
-      } else if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
-        newErrors.expiryDate = 'Tarjeta vencida';
-      }
-    }
-    
-    // CVC validation
-    if (!formData?.cvc) {
-      newErrors.cvc = 'CVC requerido';
-    } else if (formData?.cvc?.length < 3) {
-      newErrors.cvc = 'CVC inválido';
-    }
-    
-    // Cardholder name validation
-    if (!formData?.cardholderName?.trim()) {
-      newErrors.cardholderName = 'Nombre del titular requerido';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors)?.length === 0;
+
+    if (!formData.cvc || formData.cvc.length < 3) e.cvc = "CVC inválido";
+    if (!formData.cardholderName?.trim()) e.cardholderName = "Nombre requerido";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
-    e?.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
-    }
+  const submit = (ev) => {
+    ev?.preventDefault();
+    if (validate()) onSubmit?.(formData);
   };
-
-  const getCardType = (cardNumber) => {
-    const number = cardNumber?.replace(/\s/g, '');
-    if (/^4/?.test(number)) return 'visa';
-    if (/^5[1-5]/?.test(number)) return 'mastercard';
-    if (/^3[47]/?.test(number)) return 'amex';
-    return 'generic';
-  };
-
-  const getCardIcon = (cardType) => {
-    switch (cardType) {
-      case 'visa': return 'CreditCard';
-      case 'mastercard': return 'CreditCard';
-      case 'amex': return 'CreditCard';
-      default: return 'CreditCard';
-    }
-  };
-
-  const cardType = getCardType(formData?.cardNumber);
 
   return (
     <div className={`bg-card border border-border rounded-lg p-6 ${className}`}>
-      <div className="flex items-center space-x-3 mb-6">
+      <div className="flex items-center space-x-3 mb-4">
         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-          <Icon name="CreditCard" size={20} color="var(--color-primary)" />
+          <Icon name="CreditCard" size={18} color="var(--color-primary)" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground">Tarjeta de Crédito</h3>
           <p className="text-sm text-muted-foreground">Pago seguro con encriptación SSL</p>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Card Number */}
+
+      <form onSubmit={submit} className="space-y-4">
+        <Input
+          label="Correo electrónico"
+          type="email"
+          placeholder="tucorreo@dominio.com"
+          value={formData.email}
+          onChange={(e) => handleInputChange("email", e.target.value)}
+          error={errors.email}
+          required
+        />
+
         <div className="relative">
           <Input
             label="Número de Tarjeta"
             type="text"
             placeholder="1234 5678 9012 3456"
-            value={formData?.cardNumber}
-            onChange={(e) => handleInputChange('cardNumber', e?.target?.value)}
-            error={errors?.cardNumber}
+            value={formData.cardNumber}
+            onChange={(e) => handleInputChange("cardNumber", e.target.value)}
+            error={errors.cardNumber}
             required
           />
           <div className="absolute right-3 top-9">
-            <Icon name={getCardIcon(cardType)} size={20} className="text-muted-foreground" />
+            <Icon name="CreditCard" size={18} className="text-muted-foreground" />
           </div>
         </div>
 
-        {/* Expiry and CVC */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             label="Fecha de Vencimiento"
             type="text"
             placeholder="MM/YY"
-            value={formData?.expiryDate}
-            onChange={(e) => handleInputChange('expiryDate', e?.target?.value)}
-            error={errors?.expiryDate}
+            value={formData.expiryDate}
+            onChange={(e) => handleInputChange("expiryDate", e.target.value)}
+            error={errors.expiryDate}
             required
           />
           <Input
             label="CVC"
             type="text"
             placeholder="123"
-            value={formData?.cvc}
-            onChange={(e) => handleInputChange('cvc', e?.target?.value)}
-            error={errors?.cvc}
+            value={formData.cvc}
+            onChange={(e) => handleInputChange("cvc", e.target.value)}
+            error={errors.cvc}
+            required
+          />
+          <Input
+            label="Nombre del Titular"
+            type="text"
+            placeholder="Como aparece en la tarjeta"
+            value={formData.cardholderName}
+            onChange={(e) => handleInputChange("cardholderName", e.target.value)}
+            error={errors.cardholderName}
             required
           />
         </div>
 
-        {/* Cardholder Name */}
-        <Input
-          label="Nombre del Titular"
-          type="text"
-          placeholder="Como aparece en la tarjeta"
-          value={formData?.cardholderName}
-          onChange={(e) => handleInputChange('cardholderName', e?.target?.value)}
-          error={errors?.cardholderName}
-          required
-        />
-
-        {/* Security Features */}
-        <div className="bg-muted/30 rounded-lg p-4 mt-6">
-          <div className="flex items-center space-x-2 mb-2">
-            <Icon name="Shield" size={16} color="var(--color-success)" />
-            <span className="text-sm font-medium text-success">Pago Seguro</span>
-          </div>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Encriptación SSL de 256 bits</li>
-            <li>• Datos protegidos según PCI DSS</li>
-            <li>• No almacenamos información de tarjetas</li>
-          </ul>
+        {/* Footer dentro de la card */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <Button type="button" variant="outline" className="sm:min-w-[160px]" onClick={onCancel} disabled={isProcessing}>
+            Volver
+          </Button>
+          <Button type="submit" variant="default" className="flex-1" loading={isProcessing}>
+            Pagar {totalAmount.toFixed(2)} USD
+          </Button>
         </div>
-
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          variant="default"
-          fullWidth
-          loading={isProcessing}
-          className="mt-6"
-        >
-          {isProcessing ? 'Procesando Pago...' : 'Procesar Pago'}
-        </Button>
       </form>
     </div>
   );

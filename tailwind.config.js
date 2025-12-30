@@ -11,12 +11,13 @@ module.exports = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      // 🔧 Menos padding en móvil para evitar “empujes”
+      padding: { DEFAULT: "1rem", sm: "1rem", md: "1.25rem" },
+      screens: { "2xl": "1400px" },
     },
     extend: {
+      // 🔧 Breakpoint extra para teléfonos pequeños
+      screens: { xs: "360px" },
       colors: {
         border: "var(--color-border)",
         input: "var(--color-input)",
@@ -112,41 +113,22 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "fade-in": {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        "slide-in": {
-          from: { transform: "translateY(-10px)", opacity: "0" },
-          to: { transform: "translateY(0)", opacity: "1" },
-        },
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "slide-in": { from: { transform: "translateY(-10px)", opacity: "0" }, to: { transform: "translateY(0)", opacity: "1" } },
       },
       spacing: {
         18: "4.5rem",
         88: "22rem",
+        // 🔧 Safe areas para notch
+        "safe-b": "env(safe-area-inset-bottom)",
+        "safe-t": "env(safe-area-inset-top)",
       },
-      zIndex: {
-        40: "40",
-        50: "50",
-        60: "60",
-      },
-      backdropBlur: {
-        subtle: "4px",
-      },
-      transitionDuration: {
-        150: "150ms",
-        200: "200ms",
-        300: "300ms",
-      },
-      transitionTimingFunction: {
-        medical: "cubic-bezier(0.4, 0, 0.2, 1)",
-      },
-      minHeight: {
-        touch: "44px",
-      },
-      minWidth: {
-        touch: "44px",
-      },
+      zIndex: { 40: "40", 50: "50", 60: "60" },
+      backdropBlur: { subtle: "4px" },
+      transitionDuration: { 150: "150ms", 200: "200ms", 300: "300ms" },
+      transitionTimingFunction: { medical: "cubic-bezier(0.4, 0, 0.2, 1)" },
+      minHeight: { touch: "44px" },
+      minWidth: { touch: "44px" },
     },
   },
   plugins: [

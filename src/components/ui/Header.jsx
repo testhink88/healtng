@@ -4,6 +4,21 @@ import { useNavigate } from "react-router-dom";
 import Icon from "@/components/AppIcon";
 import Button from "@/components/ui/Button";
 
+/**
+ * 👇 Rutas del logotipo (se sirven desde /public)
+ * Coloca tus archivos en:
+ * public/assets/brand/logo-light.svg
+ * public/assets/brand/logo-dark.svg
+ * (Opcional) public/assets/brand/logo-mark.svg
+ *
+ * Si solo tienes un logo, apunta ambos a la misma ruta.
+ */
+const BRAND = {
+  name: "Healtng",
+  logoLight: "/assets/brand/logo-light.svg",
+  logoDark: "/assets/brand/logo-dark.svg",
+};
+
 const Header = ({
   userRole = "patient",
   isAuthenticated = true,
@@ -110,12 +125,18 @@ const Header = ({
     return (
       <header className={`fixed top-0 left-0 right-0 z-40 bg-card border-b border-border ${className}`}>
         <div className="flex items-center justify-between h-16 px-4 lg:px-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Icon name="Heart" size={20} color="white" />
-            </div>
-            <span className="text-xl font-bold text-foreground">Healtng</span>
-          </div>
+          <button onClick={() => navigate("/")} className="flex items-center space-x-2">
+            {/* 🔵 Logo (no autenticado) */}
+            <picture>
+              <source srcSet={BRAND.logoDark} media="(prefers-color-scheme: dark)" />
+              <img
+                src={BRAND.logoLight}
+                alt={BRAND.name}
+                className="h-7 w-auto select-none"
+                draggable={false}
+              />
+            </picture>
+          </button>
           <Button variant="default" onClick={() => navigate("/login")}>
             Iniciar Sesión
           </Button>
@@ -132,12 +153,18 @@ const Header = ({
           <Button variant="ghost" size="icon" onClick={onMenuToggle} className="lg:hidden">
             <Icon name="Menu" size={20} />
           </Button>
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Icon name="Heart" size={20} color="white" />
-            </div>
-            <span className="text-xl font-bold text-foreground">Healtng</span>
-          </div>
+          <button onClick={() => navigate("/")} className="flex items-center space-x-2">
+            {/* 🔵 Logo (autenticado) */}
+            <picture>
+              <source srcSet={BRAND.logoDark} media="(prefers-color-scheme: dark)" />
+              <img
+                src={BRAND.logoLight}
+                alt={BRAND.name}
+                className="h-7 w-auto select-none"
+                draggable={false}
+              />
+            </picture>
+          </button>
           <nav className="hidden lg:flex items-center space-x-1 ml-8">
             {quickActions.slice(0, 4).map((action, idx) => (
               <Button

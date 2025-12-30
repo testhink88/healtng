@@ -1,154 +1,215 @@
-import React, { useState, useEffect } from 'react';
-import Header from '@/components/ui/Header';
-import Sidebar from '@/components/ui/Sidebar';
+import React, { useState, useEffect } from "react";
+import Header from "@/components/ui/Header";
+import Sidebar from "@/components/ui/Sidebar";
 
-import KPICard from '@/pages/professional-dashboard/components/KPICard';
-import AppointmentsList from '@/pages/professional-dashboard/components/AppointmentsList';
-import QuickActions from '@/pages/professional-dashboard/components/QuickActions';
-import UpcomingSchedule from '@/pages/professional-dashboard/components/UpcomingSchedule';
-import PatientManagementShortcuts from '@/pages/professional-dashboard/components/PatientManagementShortcuts';
-import RevenueTracking from '@/pages/professional-dashboard/components/RevenueTracking';
+import AppointmentsList from "@/pages/professional-dashboard/components/AppointmentsList";
+import UpcomingSchedule from "@/pages/professional-dashboard/components/UpcomingSchedule";
 
-import Icon from '@/components/AppIcon';
-import Button from '@/components/ui/Button';
-
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
 
 const ProfessionalDashboard = () => {
+  // Shell
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [userRole, setUserRole] = useState('doctor');
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [userRole] = useState("doctor");
 
-  // Update time every minute
+  // Estado
+  const [currentTime] = useState(new Date()); // (se mantiene por si lo usas luego)
+  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-
-    return () => clearInterval(timer);
+    const onOnline = () => setIsOfflineMode(false);
+    const onOffline = () => setIsOfflineMode(true);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
   }, []);
 
-  // Mock data for today's appointments
+  // Mock del profesional (sustituible por store/API)
+  const professionalData = {
+    name: "Dr. Carlos Mendoza",
+    specialty: "Medicina Interna",
+    mpps: "12345",
+    avatar:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150",
+    rating: 4.7,
+    reviews: 52,
+    verified: true,
+  };
+
+  // Datos demo
   const todaysAppointments = [
     {
       id: 1,
-      patientName: 'María González',
-      time: '09:00',
+      patientName: "María González",
+      time: "09:00",
       duration: 30,
-      type: 'in-person',
-      status: 'confirmed',
-      reason: 'Consulta de control cardiológico'
+      type: "in-person",
+      status: "confirmed",
+      reason: "Consulta General",
+      note: "Control de presión arterial",
     },
     {
       id: 2,
-      patientName: 'Carlos Rodríguez',
-      time: '10:30',
-      duration: 45,
-      type: 'teleconsultation',
-      status: 'confirmed',
-      reason: 'Seguimiento diabetes tipo 2'
+      patientName: "Carlos Rodríguez",
+      time: "09:30",
+      duration: 20,
+      type: "in-person",
+      status: "pending",
+      reason: "Seguimiento",
+      note: "Revisión de exámenes",
     },
     {
       id: 3,
-      patientName: 'Ana Martínez',
-      time: '11:30',
-      duration: 30,
-      type: 'in-person',
-      status: 'pending',
-      reason: 'Primera consulta dermatológica'
+      patientName: "Ana Martínez",
+      time: "10:00",
+      duration: 45,
+      type: "teleconsultation",
+      status: "inprogress",
+      reason: "Primera Consulta",
+      note: "Evaluación inicial",
     },
     {
       id: 4,
-      patientName: 'José Pérez',
-      time: '14:00',
-      duration: 60,
-      type: 'in-person',
-      status: 'confirmed',
-      reason: 'Procedimiento menor'
+      patientName: "Luis Pérez",
+      time: "10:45",
+      duration: 30,
+      type: "in-person",
+      status: "confirmed",
+      reason: "Control",
+      note: "Control post-operatorio",
     },
     {
       id: 5,
-      patientName: 'Carmen Silva',
-      time: '15:30',
-      duration: 30,
-      type: 'teleconsultation',
-      status: 'pending',
-      reason: 'Consulta de seguimiento'
-    }
+      patientName: "Carmen Silva",
+      time: "11:15",
+      duration: 60,
+      type: "in-person",
+      status: "confirmed",
+      reason: "Consulta Especializada",
+      note: "Evaluación cardiológica",
+    },
   ];
 
-  // Mock data for upcoming schedule
-  const upcomingSchedule = [
-    {
-      id: 6,
-      patientName: 'Luis Morales',
-      date: '2025-09-03',
-      time: '09:00',
-      type: 'in-person',
-      status: 'confirmed',
-      reason: 'Consulta neurológica'
-    },
-    {
-      id: 7,
-      patientName: 'Elena Vargas',
-      date: '2025-09-03',
-      time: '11:00',
-      type: 'teleconsultation',
-      status: 'confirmed',
-      reason: 'Control post-operatorio'
-    },
-    {
-      id: 8,
-      patientName: 'Roberto Díaz',
-      date: '2025-09-04',
-      time: '10:00',
-      type: 'in-person',
-      status: 'pending',
-      reason: 'Primera consulta'
-    }
+  const weekPills = [
+    { id: "mon", dayLabel: "Lun", dayNum: 26, count: 8 },
+    { id: "tue", dayLabel: "Mar", dayNum: 27, count: 6 },
+    { id: "wed", dayLabel: "Mié", dayNum: 28, count: 9 },
+    { id: "thu", dayLabel: "Jue", dayNum: 29, count: 7 },
+    { id: "fri", dayLabel: "Vie", dayNum: 30, count: 5 },
+    { id: "sat", dayLabel: "Sáb", dayNum: 31, count: 3 },
+    { id: "sun", dayLabel: "Dom", dayNum: 1, count: 12, active: true },
   ];
 
-  // Calculate KPI values
-  const todaysAppointmentCount = todaysAppointments?.length;
-  const waitingRoomCount = todaysAppointments?.filter(apt => apt?.status === 'confirmed')?.length;
-  const noShowPercentage = 8.5; // Mock percentage
-  const dailyIncome = 450.00; // Mock daily income in USD
-  const vesEquivalent = (dailyIncome * 36.5)?.toFixed(2); // Mock conversion rate
+  const dayTimeline = [
+    { time: "09:00", left: "María G.", right: "Carlos R." },
+    { time: "10:00", left: "Ana M." },
+    { time: "11:00", left: "Luis P.", right: "Carmen S." },
+    { time: "12:00", slot: "Disponible" },
+    { time: "13:00", slot: "Descanso" },
+    { time: "14:00", left: "Pedro L." },
+    { time: "15:00", left: "Sofía R.", right: "Miguel A." },
+    { time: "16:00", left: "Elena V." },
+  ];
 
-  const handleAppointmentAction = (appointmentId, action) => {
-    console.log(`${action} appointment ${appointmentId}`);
-    // Mock action handling - in real app would update state/API
-  };
+  // Helpers (si los quieres reutilizar)
+  const formatReviews = (n) => new Intl.NumberFormat("es-VE").format(n);
 
-  const formatGreeting = () => {
-    const hour = currentTime?.getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 18) return 'Buenas tardes';
-    return 'Buenas noches';
-  };
+  // -------- Accesos rápidos PRIORITARIOS (debajo del header) --------
+  const quickAccess = [
+    {
+      key: "new_appointment",
+      icon: "Plus",
+      title: "Nueva Cita",
+      subtitle: "Programar cita con paciente",
+      onClick: () => (window.location.href = "/appointments/new"),
+    },
+    {
+      key: "today",
+      icon: "Calendar",
+      title: "Pacientes Hoy",
+      subtitle: "Ver agenda del día",
+      onClick: () =>
+        document
+          .getElementById("today-appointments")
+          ?.scrollIntoView({ behavior: "smooth" }),
+    },
+    {
+      key: "rx",
+      icon: "FileEdit",
+      title: "Crear Receta",
+      subtitle: "Nueva prescripción médica",
+      onClick: () => (window.location.href = "/prescriptions/new"),
+    },
+    {
+      key: "emergency",
+      icon: "AlertTriangle",
+      title: "Emergencias",
+      subtitle: "Casos urgentes",
+      onClick: () => (window.location.href = "/emergency"),
+    },
+  ];
 
-  const formatCurrentTime = () => {
-    return currentTime?.toLocaleTimeString('es-VE', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
+  // Row: swipe en móvil + grid en desktop
+  const QuickAccessRow = () => (
+    <div className="mb-6 sm:mb-8">
+      {/* Mobile swipeable row */}
+      <div className="lg:hidden overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] no-scrollbar">
+        <div className="flex gap-4 min-w-max pr-2">
+          {quickAccess.map((qa) => (
+            <button
+              key={qa.key}
+              onClick={qa.onClick}
+              className="min-w-[260px] bg-card border border-border rounded-xl p-4 text-left hover:bg-accent transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Icon name={qa.icon} size={16} className="text-primary" />
+                </div>
+                <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+              </div>
+              <div className="mt-3">
+                <div className="font-medium text-foreground">{qa.title}</div>
+                <div className="text-xs text-muted-foreground">{qa.subtitle}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
 
-  const formatCurrentDate = () => {
-    return currentTime?.toLocaleDateString('es-VE', { 
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+      {/* Desktop grid */}
+      <div className="hidden lg:grid grid-cols-4 gap-6 mb-0">
+        {quickAccess.map((qa) => (
+          <button
+            key={qa.key}
+            onClick={qa.onClick}
+            className="bg-card border border-border rounded-xl p-4 text-left hover:bg-accent transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Icon name={qa.icon} size={16} className="text-primary" />
+              </div>
+              <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+            </div>
+            <div className="mt-3">
+              <div className="font-medium text-foreground">{qa.title}</div>
+              <div className="text-xs text-muted-foreground">{qa.subtitle}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
+      <Header
         userRole={userRole}
-        isAuthenticated={true}
+        isAuthenticated
         onMenuToggle={() => setMobileSidebarOpen(true)}
       />
       <Sidebar
@@ -158,141 +219,89 @@ const ProfessionalDashboard = () => {
         isMobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
-      <main className={`pt-16 transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+
+      <main
+        className={`pt-16 transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
+        }`}
+      >
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-          {/* Welcome Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-                  {formatGreeting()}, Dr. María González
-                </h1>
-                <p className="text-muted-foreground">
-                  {formatCurrentDate()} • {formatCurrentTime()}
-                </p>
-              </div>
-              <div className="hidden lg:flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Estado del Sistema</p>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span className="text-sm font-medium text-success">Operativo</span>
+          {/* Encabezado profesional (limpio, sin Actualizar) */}
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-5 mb-6 sm:mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-muted rounded-full overflow-hidden">
+                  <img
+                    src={professionalData.avatar}
+                    alt={professionalData.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) =>
+                      (e.currentTarget.src = "/assets/images/no_image.png")
+                    }
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                      Bienvenido, {professionalData.name}
+                    </h1>
+                    {professionalData.verified && (
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-medium text-primary"
+                        title="Profesional verificado"
+                      >
+                        <Icon name="BadgeCheck" size={16} className="text-primary" />
+                        Verificado
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {professionalData.specialty} • MPPS: {professionalData.mpps}
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-1 text-sm">
+                    <Icon name="Star" size={16} className="text-warning fill-current" />
+                    <span className="font-medium text-foreground">
+                      {professionalData.rating}
+                    </span>
+                    <span className="text-muted-foreground">
+                      ({formatReviews(professionalData.reviews)} comentarios)
+                    </span>
                   </div>
                 </div>
               </div>
+
+              {isOfflineMode && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-warning/10 border border-warning/20 rounded-full">
+                  <Icon name="WifiOff" size={16} className="text-warning" />
+                  <span className="text-sm font-medium text-warning">Modo Offline</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <KPICard
-              title="Citas de Hoy"
-              value={todaysAppointmentCount}
-              subtitle="citas programadas"
-              icon="Calendar"
-              trend="up"
-              trendValue="+2"
-              color="primary"
-            />
-            <KPICard
-              title="Sala de Espera"
-              value={waitingRoomCount}
-              subtitle="pacientes esperando"
-              icon="Users"
-              trend="up"
-              trendValue="+1"
-              color="success"
-            />
-            <KPICard
-              title="Ausentismo"
-              value={`${noShowPercentage}%`}
-              subtitle="no se presentaron"
-              icon="UserX"
-              trend="down"
-              trendValue="-2.1%"
-              color="warning"
-            />
-            <KPICard
-              title="Ingresos Diarios"
-              value={dailyIncome?.toFixed(2)}
-              subtitle="ingresos del día"
-              icon="DollarSign"
-              trend="up"
-              trendValue="+18.4%"
-              color="success"
-              currency={true}
-              vesValue={vesEquivalent}
-            />
-          </div>
+          {/* Accesos rápidos (swipe mobile / grid desktop) */}
+          <QuickAccessRow />
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Left Column - Appointments and Quick Actions */}
-            <div className="lg:col-span-2 space-y-6">
+          {/* Citas (2/3) + Vista semanal (1/3) con más aire */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 xl:gap-10">
+            <div className="lg:col-span-2 space-y-7" id="today-appointments">
               <AppointmentsList
                 appointments={todaysAppointments}
-                onCheckIn={(id) => handleAppointmentAction(id, 'checkin')}
-                onReschedule={(id) => handleAppointmentAction(id, 'reschedule')}
-                onCancel={(id) => handleAppointmentAction(id, 'cancel')}
+                onCheckIn={(id) => console.log("[checkin]", id)}
+                onReschedule={(id) => console.log("[reschedule]", id)}
+                onCancel={(id) => console.log("[cancel]", id)}
+                hideConversation
               />
-              
-              <QuickActions userRole={userRole} />
             </div>
 
-            {/* Right Column - Schedule and Patient Management */}
-            <div className="space-y-6">
-              <UpcomingSchedule schedule={upcomingSchedule} />
-              <PatientManagementShortcuts />
-            </div>
-          </div>
-
-          {/* Revenue Tracking */}
-          <div className="mb-8">
-            <RevenueTracking />
-          </div>
-
-          {/* Emergency Actions */}
-          <div className="bg-error/5 border border-error/20 rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-error/10 rounded-full flex items-center justify-center">
-                <Icon name="AlertTriangle" size={20} className="text-error" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-error">Acciones de Emergencia</h3>
-                <p className="text-sm text-muted-foreground">Acceso rápido a funciones críticas</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button
-                variant="outline"
-                iconName="Phone"
-                iconPosition="left"
-                onClick={() => window.location.href = '/emergency-contacts'}
-                fullWidth
-              >
-                Contactos de Emergencia
-              </Button>
-              <Button
-                variant="outline"
-                iconName="AlertCircle"
-                iconPosition="left"
-                onClick={() => window.location.href = '/emergency-protocols'}
-                fullWidth
-              >
-                Protocolos de Emergencia
-              </Button>
-              <Button
-                variant="outline"
-                iconName="Ambulance"
-                iconPosition="left"
-                onClick={() => window.location.href = '/emergency-services'}
-                fullWidth
-              >
-                Servicios de Emergencia
-              </Button>
+            <div className="space-y-6 mt-2 lg:mt-0">
+              <UpcomingSchedule
+                weekPills={weekPills}
+                timeline={dayTimeline}
+                monthLabel="Agosto - Septiembre 2025"
+              />
             </div>
           </div>
         </div>

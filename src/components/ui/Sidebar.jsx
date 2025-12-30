@@ -1,17 +1,23 @@
 ﻿// src/components/ui/Sidebar.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/utils/cn"; // Utilidad para concatenar clases
-import Icon from "@/components/AppIcon"; // Componente Icono
-import Button from "@/components/ui/Button"; // Componente Botón
+import { cn } from "@/utils/cn";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
+import { getProviderProfile } from "@/utils/providerProfile";
 
-// ====================================================================
-// === FUNCIONES AUXILIARES ===
-// ====================================================================
+// ===========================================================
+// === HELPERS ===============================================
+// ===========================================================
+const safeJsonParse = (raw, fallback = null) => {
+  try {
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
-/**
- * Normaliza los roles de usuario a un conjunto canónico.
- */
+// Normaliza roles
 const normalizeRole = (role) => {
   const map = {
     clinic_admin: "clinic",
@@ -22,125 +28,265 @@ const normalizeRole = (role) => {
   return map?.[role] ?? role ?? "patient";
 };
 
-/**
- * Normaliza el tipo de negocio a minúsculas, usando "mixto" como defecto.
- */
-const bt = (t) => String(t || "mixto").toLowerCase();
+// Normaliza tipo de negocio: producto / servicio / mixto
+const normalizeBusinessType = (type) => {
+  const t = String(type || "mixto").toLowerCase();
 
-// ⚠️ MOCK: DEBES IMPLEMENTAR O IMPORTAR getProviderBadges EN TU PROYECTO
-const getProviderBadges = () => {
-    // Ejemplo de datos dinámicos.
-    return {
-        shipments: 5,
-        orders: 12,
-    };
+  if (["producto", "productos", "product", "products"].includes(t)) {
+    return "producto";
+  }
+  if (["servicio", "servicios", "service", "services"].includes(t)) {
+    return "servicio";
+  }
+  return "mixto";
 };
 
+const bt = normalizeBusinessType;
 
-// ----------------------------------------------------------------------
-// FUNCIÓN UNIVERSAL DE PROVEEDOR (CORREGIDA Y CONSOLIDADA con UX Writing LATAM)
-// ----------------------------------------------------------------------
-const makeUniversalProviderMenu = (type, mods, currentBadges) => {
-  // Las condiciones aquí son para la lógica demo de 'businessType'
-  const isProducto = type === "producto" || type === "mixto";
-  const isServicio = type === "servicio" || type === "mixto";
+const userHasPermission = (requiredPermission, userPermissions) => {
+  if (!requiredPermission) return true;
+  return userPermissions && userPermissions.includes(requiredPermission);
+};
 
-  return [
-    { key: "dashboard", label: "Panel Principal", icon: "Home", href: "/provider/dashboard" },
+// --- Módulos por tipo de negocio (igual que en ProviderDashboard) ---
+const defaultModulesForType = (type = "mixto") => {
+  const t = normalizeBusinessType(type);
 
-    // 1. GESTIÓN DE INVENTARIO (Producto)
-    ...(isProducto ? [{
+  switch (t) {
+    case "producto":
+      return {
+        inventario: true,
+        agenda: false,
+        pedidos: true,
+        despacho: true,
+        facturacion: true,
+        marketplace: true,
+        rxIntake: true,
+        authorizations: true,
+        analytics: true,
+      };
+    case "servicio":
+      return {
+        inventario: false,
+        agenda: true,
+        pedidos: true,
+        despacho: false,
+        facturacion: true,
+        marketplace: true,
+        rxIntake: true,
+        authorizations: true,
+        analytics: true,
+      };
+    default:
+      return {
+        inventario: true,
+        agenda: true,
+        pedidos: true,
+        despacho: true,
+        facturacion: true,
+        marketplace: true,
+        rxIntake: true,
+        authorizations: true,
+        analytics: true,
+      };
+  }
+};
+
+const normalizeModules = (mods) => {
+  const m = mods || {};
+  return {
+    inventario: m.inventario ?? true,
+    agenda: m.agenda ?? true,
+    pedidos: m.pedidos ?? true,
+    despacho: m.despacho ?? true,
+    facturacion: m.facturacion ?? true,
+    marketplace: m.marketplace ?? true,
+    rxIntake: m.rxIntake ?? false,
+    authorizations: m.authorizations ?? true,
+    analytics: m.analytics ?? true,
+  };
+};
+
+// ===========================================================
+// === MENÚ UNIVERSAL (basePath configurable) =================
+// ===========================================================
+const makeUniversalProviderMenu = (
+  currentBadges,
+  rawModules,
+  businessType = "mixto",
+  {
+    basePath = "/provider", // "/provider" o "/clinic"
+    enableMarketplace = true,
+  } = {}
+) => {
+  const mods = normalizeModules(rawModules);
+  const btNormalized = normalizeBusinessType(businessType);
+
+  const isProduct = btNormalized === "producto" || btNormalized === "mixto";
+  const isService = btNormalized === "servicio" || btNormalized === "mixto";
+
+  const items = [];
+
+  items.push({
+    key: "dashboard",
+    label: "Panel Principal",
+    icon: "Home",
+    href: `${basePath}/dashboard`,
+  });
+
+  if (mods.inventario && isProduct) {
+    items.push({
       key: "inventory_management",
       label: "Gestión de Inventario",
       icon: "Package",
       isGroup: true,
       children: [
-        { key: "inventory", label: "Inventario (Existencias)", icon: "Package", href: "/provider/inventory" },
-        // UX Writing: 'Caducidad' -> 'Vencimiento'
-        { key: "lotes", label: "Lotes y Vencimiento", icon: "Layers", href: "/provider/inventory/lots" }, 
-        { key: "ajustes", label: "Ajustes de Stock", icon: "Edit", href: "/provider/inventory/adjustments" },
+        {
+          key: "inventory",
+          label: "Inventario (Existencias)",
+          icon: "Package",
+          href: `${basePath}/inventory`,
+        },
+        {
+          key: "lotes",
+          label: "Lotes y Vencimiento",
+          icon: "Layers",
+          href: `${basePath}/lots`,
+        },
       ],
-    }] : []),
+    });
+  }
 
-    // 2. GESTIÓN DE RECURSOS Y AGENDA (Servicio)
-    ...(isServicio ? [{
-      key: "resource_and_schedule",
-      label: "Gestión de Recursos y Agenda",
-      icon: "CalendarCheck",
-      isGroup: true,
-      children: [
-        { key: "agenda", label: "Agenda de Citas", icon: "CalendarDays", href: "/provider/appointments" },
-        // UX Writing: 'Recursos' -> 'Personal y Unidades'
-        { key: "recursos", label: "Personal y Unidades", icon: "Users", href: "/provider/resources" },
-      ],
-    }] : []),
+  if (mods.agenda && isService) {
+    items.push({
+      key: "services_agenda",
+      label: isProduct && isService ? "Servicios y Agenda" : "Servicios",
+      icon: "Calendar",
+      href: `${basePath}/services`,
+    });
+  }
 
-    // 3. GESTIÓN DE PEDIDOS (Común y Central - Estilo HealthInventory)
-    {
-      key: "orders_management",
-      label: "Gestión de Pedidos",
-      icon: "ShoppingCart",
-      isGroup: true,
-      children: [
-        { key: "orders", label: "Pedidos", icon: "ShoppingCart", href: "/provider/orders", badge: currentBadges?.orders || 0 },
-        // UX Writing: 'Despachos' -> 'Envíos'
-        { key: "dispatch", label: "Envíos", icon: "Truck", href: "/provider/dispatch", badge: currentBadges?.shipments || 0 },
-      ],
-    },
+  if (mods.pedidos || mods.despacho || mods.rxIntake) {
+    const children = [];
 
-    // 4. GESTIÓN FINANCIERA Y COBERTURA (Común)
-    {
-      key: "billing_management",
-      label: "Gestión Financiera y Cobertura",
-      icon: "DollarSign",
-      isGroup: true,
-      children: [
-        { key: "billing", label: "Facturas y Pagos", icon: "CreditCard", href: "/provider/billing" },
-        // UX Writing: 'Validación de Cobertura' -> 'Pre-autorizaciones'
-        ...(isServicio ? [{ key: "authorizations", label: "Pre-autorizaciones", icon: "Shield", href: "/provider/authorizations" }] : []),
-      ],
-    },
+    if (mods.pedidos) {
+      children.push({
+        key: "orders",
+        label: "Pedidos",
+        icon: "ShoppingCart",
+        href: `${basePath}/orders`,
+        badge: currentBadges?.orders || 0,
+      });
+    }
 
-    // 5. CONTROL SANITARIO Y LOGÍSTICO (Principalmente Producto)
-    ...(isProducto ? [{
-      key: "compliance_logistics",
-      // UX Writing: Título principal optimizado
-      label: "Control de Recetas y Logística",
-      icon: "FileText",
-      isGroup: true,
-      children: [
-        // UX Writing: 'RX Intake' -> 'Validación y Entrega de Recetas'
-        { key: "rx-intake", label: "Validación y Entrega de Recetas", icon: "FileText", href: "/provider/rx-intake" },
-        // UX Writing: Añadir aclaración 'Insumos'
-        { key: "b2b", label: "Marketplace B2B (Insumos)", icon: "Building2", href: "/provider/b2b" },
-      ],
-    }] : []),
+    if (mods.despacho && isProduct) {
+      children.push({
+        key: "dispatch",
+        label: "Envíos",
+        icon: "Truck",
+        href: `${basePath}/dispatch`,
+        badge: currentBadges?.shipments || 0,
+      });
+    }
 
-    // 6. ANALÍTICAS (Común)
-    {
+    if (mods.rxIntake) {
+      children.push({
+        key: "rx_intake",
+        label: "RX Intake",
+        icon: "FileText",
+        href: `${basePath}/rx-intake`,
+      });
+    }
+
+    if (children.length) {
+      items.push({
+        key: "orders_management",
+        label: "Gestión de Pedidos",
+        icon: "ShoppingCart",
+        isGroup: true,
+        children,
+      });
+    }
+  }
+
+  if (mods.facturacion || mods.authorizations) {
+    const children = [];
+
+    if (mods.facturacion) {
+      children.push({
+        key: "billing",
+        label: "Facturas y Pagos",
+        icon: "CreditCard",
+        href: `${basePath}/billing`,
+      });
+    }
+
+    if (mods.authorizations) {
+      children.push({
+        key: "authorizations",
+        label: "Pre-autorizaciones",
+        icon: "Shield",
+        href: `${basePath}/authorizations`,
+      });
+    }
+
+    if (children.length) {
+      items.push({
+        key: "billing_management",
+        label: "Finanzas y Cobertura",
+        icon: "DollarSign",
+        isGroup: true,
+        children,
+      });
+    }
+  }
+
+  if (mods.analytics) {
+    items.push({
       key: "analytics",
-      // UX Writing: 'Analíticas' -> 'Análisis de Datos'
       label: "Análisis de Datos",
       icon: "BarChart3",
+      href: `${basePath}/analytics`,
+    });
+  }
+
+  if (enableMarketplace && mods.marketplace) {
+    const children = [];
+
+    children.push({
+      key: "marketplace_b2b_my_offers",
+      label:
+        isProduct && isService
+          ? "Mi catálogo B2B (productos y servicios)"
+          : isProduct
+          ? "Mi catálogo B2B (productos)"
+          : "Mi catálogo B2B (servicios/planes)",
+      icon: "Store",
+      href: `${basePath}/b2b`,
+    });
+
+    children.push({
+      key: "marketplace_b2b_buy",
+      label: "Comprar a otros proveedores B2B",
+      icon: "ShoppingBag",
+      href: `${basePath}/b2b/buy`,
+    });
+
+    items.push({
+      key: "marketplace",
+      label: "Marketplace B2B",
+      icon: "Store",
       isGroup: true,
-      children: [
-        // UX Writing: 'Ventas y Rotación' -> 'Ventas y Rendimiento'
-        { key: "ventas", label: "Ventas y Rendimiento", icon: "TrendingUp", href: "/provider/analytics/sales" },
-        // UX Writing: 'Tiempos y Ocupación'
-        ...(isServicio ? [{ key: "servicios", label: "Tiempos y Ocupación", icon: "Clock", href: "/provider/analytics/services" }] : []),
-      ],
-    },
-    // Ítem de nivel 1 sin grupo
-    { key: "marketplace", label: "Marketplace", icon: "Store", href: "/marketplace-hub" },
-  ];
+      children,
+    });
+  }
+
+  return items;
 };
-// ----------------------------------------------------------------------
 
-
-// ====================================================================
-// === COMPONENTE PRINCIPAL: Sidebar ===
-// ====================================================================
-
+// ===========================================================
+// === COMPONENTE PRINCIPAL: Sidebar =========================
+// ===========================================================
 const Sidebar = ({
   userRole: roleProp = "patient",
   isCollapsed = false,
@@ -148,9 +294,9 @@ const Sidebar = ({
   className = "",
   isMobileOpen = false,
   onMobileClose,
-  // PROPS DEL PROVEEDOR
-  modulos = {},
+  permissions = [],
   businessType = "mixto",
+  badges = { shipments: 0, orders: 0 },
   hideSidebar = false,
 }) => {
   const navigate = useNavigate();
@@ -158,280 +304,393 @@ const Sidebar = ({
 
   if (hideSidebar) return null;
 
-  const normalizedBusinessType = bt(businessType);
+  const normalizedBusinessType = normalizeBusinessType(businessType);
 
-  // 1. DETERMINACIÓN DEL ROL
   const userRole = useMemo(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    const stored =
+      typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
     return normalizeRole(roleProp || stored);
   }, [roleProp]);
 
-  // 2. ESTADOS
   const [activeKey, setActiveKey] = useState("dashboard");
   const [expandedGroups, setExpandedGroups] = useState({});
-  const [badges, setBadges] = useState({ shipments: 0, orders: 0 }); // Inicialización de badges
+  const [providerModules, setProviderModules] = useState(null);
 
-  // 3. EFECTO: CARGA DE INSIGNIAS DINÁMICAS (Solo para Provider)
+  const [clinicProfile, setClinicProfile] = useState(null);
+  const [displayName, setDisplayName] = useState("");
+
   useEffect(() => {
-    if (userRole === "provider" && typeof getProviderBadges === 'function') {
-      try {
-        const loadedBadges = getProviderBadges(); 
-        setBadges({ shipments: loadedBadges.shipments || 0, orders: loadedBadges.orders || 0 });
-      } catch (e) {
-        console.error("Error loading provider badges:", e);
-        setBadges({ shipments: 0, orders: 0 });
-      }
+    if (userRole !== "provider") return;
+
+    try {
+      const profile = getProviderProfile?.() || {};
+      const baseModules =
+        profile.businessModules ||
+        defaultModulesForType(profile.businessType || normalizedBusinessType);
+
+      setProviderModules(normalizeModules(baseModules));
+
+      const providerName =
+        profile.businessName ||
+        profile.tradeName ||
+        profile.legalName ||
+        profile.name;
+      if (providerName) setDisplayName(providerName);
+    } catch {
+      setProviderModules(
+        normalizeModules(defaultModulesForType(normalizedBusinessType))
+      );
+    }
+  }, [userRole, normalizedBusinessType]);
+
+  useEffect(() => {
+    if (userRole !== "clinic") return;
+    if (typeof window === "undefined") return;
+
+    const raw = window.localStorage.getItem("clinicProfile");
+    const profile = safeJsonParse(raw, null);
+    if (profile) {
+      setClinicProfile(profile);
+      if (profile.clinicName) setDisplayName(profile.clinicName);
     }
   }, [userRole]);
 
-  // 4. EFECTO: SINCRONIZACIÓN DE RUTA A CLAVE ACTIVA (RUTAS CORREGIDAS)
-  useEffect(() => {
-    const path = location?.pathname;
-    const pathToKey = [
-      // Mapeos de rutas CORREGIDOS para la nueva estructura
-      ["/provider/dashboard", "dashboard"],
-      ["/provider/inventory/lots", "lotes"], 
-      ["/provider/inventory/adjustments", "ajustes"], 
-      ["/provider/inventory", "inventory"],
-      ["/provider/appointments", "agenda"],
-      ["/provider/resources", "recursos"], 
-      ["/provider/orders", "orders"],
-      ["/provider/dispatch", "dispatch"],
-      ["/provider/billing", "billing"],
-      ["/provider/accounts", "accounts"], 
-      ["/provider/rx-intake", "rx-intake"],
-      ["/provider/authorizations", "authorizations"], 
-      ["/provider/b2b", "b2b"],
-      ["/provider/analytics/sales", "ventas"], 
-      ["/provider/analytics/services", "servicios"], 
-      ["/provider/analytics", "analytics"],
-      ["/provider/", "dashboard"], 
-      // ... (resto de mapeos de rutas para otros roles)
-    ];
-    for (const [p, k] of pathToKey) {
-      if (path?.startsWith(p)) {
-        setActiveKey(k);
-        break;
-      }
+  const navItems = useMemo(() => {
+    // ----------------------------------------------------
+    // PROVEEDOR
+    // ----------------------------------------------------
+    if (userRole === "provider") {
+      return makeUniversalProviderMenu(
+        badges,
+        providerModules,
+        normalizedBusinessType
+      );
     }
-  }, [location?.pathname]);
 
-  const toggleGroup = (key) =>
-    setExpandedGroups((prev) => ({ ...prev, [key]: !prev?.[key] }));
-
-  // 5. DEFINICIÓN DE MENÚS POR ROL (useMemo)
-  const itemsByRole = useMemo(() => {
-    const otherRolesMenus = { /* ... menús de otros roles ... */ };
-
-    // La función makeUniversalProviderMenu ahora reemplaza el antiguo makeProviderMenu
-    const providerMenu = makeUniversalProviderMenu(normalizedBusinessType, modulos, badges);
-
-    return {
-      // 1. ROL: PATIENT (Paciente)
-     patient: [
-        { 
-          key: "dashboard", 
-          label: "Panel Principal", 
-          icon: "Home", 
-          href: "/patient-dashboard" 
+    // ----------------------------------------------------
+    // MENÚS PARA OTROS ROLES
+    // ----------------------------------------------------
+    const otherRolesMenus = {
+      patient: [
+        {
+          key: "dashboard",
+          label: "Panel Principal",
+          icon: "Home",
+          href: "/patient-dashboard",
         },
-
         {
           key: "clinical_care",
           label: "Cuidado Clínico",
           icon: "Stethoscope",
           isGroup: true,
           children: [
-            { key: "doctor_search", label: "Buscar Médicos", icon: "Search", href: "/doctor-discovery" },
-            { key: "appointments", label: "Mis Citas", icon: "Calendar", href: "/patient-appointment-history" },
-            { key: "new_appointment", label: "Nueva Cita", icon: "CalendarPlus", href: "/new-patient-appointment" },
+            {
+              key: "doctor_search",
+              label: "Buscar Médicos",
+              icon: "Search",
+              href: "/doctor-discovery",
+            },
+            {
+              key: "appointments",
+              label: "Mis Citas",
+              icon: "Calendar",
+              href: "/patient-appointment-history",
+            },
+            {
+              key: "new_appointment",
+              label: "Nueva Cita",
+              icon: "CalendarPlus",
+              href: "/new-patient-appointment",
+            },
           ],
         },
-
         {
           key: "clinical_files",
           label: "Archivos Clínicos",
           icon: "FileText",
           isGroup: true,
           children: [
-            { key: "active_rx", label: "Recetas Activas", icon: "Pill", href: "/prescription-management" },
-            { key: "medical_history", label: "Historial Médico", icon: "FileStack", href: "/medical-history" },
-          ],
-        },
-
-        {
-          key: "financial_reimbursements",
-          label: "Pagos y Reembolsos",
-          icon: "CreditCard",
-          isGroup: true,
-          children: [
-            { key: "registered_payments", label: "Pagos Registrados", icon: "Receipt", href: "/patient/reimbursements/payments" },
-            { key: "upload_docs", label: "Cargar Soporte de Gasto", icon: "Upload", href: "/patient/reimbursements/upload" },
-            { key: "claim_tracking", label: "Seguimiento de Siniestro", icon: "Activity", href: "/patient/reimbursements/status" },
-          ],
-        },
-
-        { key: "marketplace", label: "Marketplace", icon: "ShoppingBag", href: "/marketplace-hub" },
-        
-        // ❌ El ítem de configuración ha sido ELIMINADO de aquí.
-      ],
-
-
-      // 2. ROL: CLINIC (Clínica/Administrador)
-      clinic: [
-        { key: "dashboard", label: "Panel Principal", icon: "Home", href: "/clinic-dashboard" },
-        {
-          key: "practice",
-          label: "Gestión de Consulta",
-          icon: "Building2",
-          isGroup: true,
-          children: [
-            { key: "appointments", label: "Agenda de Citas", icon: "Calendar", href: "/clinic-appointments-management", badge: "5" },
-            { key: "patients", label: "Pacientes", icon: "Users", href: "/patients?scope=clinic&groupBy=specialty" },
-            { key: "prescriptions", label: "Recetas", icon: "Pill", href: "/prescription-management?scope=clinic" },
-            { key: "diagnosis", label: "Diagnósticos", icon: "Stethoscope", href: "/diagnosis/new?scope=clinic&mode=list" },
-            { key: "referrals", label: "Derivaciones", icon: "Share2", href: "/referrals/new?scope=clinic&mode=list" },
-          ],
-        },
-        { key: "inventory", label: "Inventario", icon: "Package", href: "/clinic/inventory" },
-        { key: "orders", label: "Órdenes de Compra", icon: "ShoppingCart", href: "/clinic/purchase-orders" },
-        { key: "spaces_management", label: "Espacios", icon: "Building", href: "/clinic/spaces" },
-        { key: "marketplace", label: "Marketplace", icon: "Store", href: "/clinic-marketplace-hub" },
-      ],
-
-      // 3. ROL: DOCTOR (Médico general)
-      // Localización: Dentro del array principal de itemsByRole, bajo la clave doctor
-
-doctor: [
-  // Módulo Principal: Inteligencia de Práctica
-  { key: "dashboard", label: "Panel Profesional", icon: "BarChart3", href: "/professional-dashboard" },
-  
-  // Módulo Consolidado: Gestión de Consulta (Práctica y Archivos)
-  {
-    key: "gestion_practica_clinica", // Nueva clave consolidada
-    label: "Gestión de Consulta",
-    icon: "Stethoscope", // Usamos el ícono clínico para el grupo
-    isGroup: true,
-    children: [
-      { key: "agenda_citas", label: "Agenda de Citas", icon: "Calendar", href: "/appointment-booking", badge: "5" },
-      { key: "mis_pacientes", label: "Mis Pacientes", icon: "Users", href: "/patients" },
-      
-      // CONSOLIDACIÓN 1: Generación de Órdenes (Incluye Recetas, Informes y Órdenes)
-      {
-        key: "generacion_ordenes", 
-        label: "Generación de Órdenes", // Nuevo Título UX Writing
-        icon: "FileText",
-        isGroup: true,
-        children: [
-          // Emisión de Recetas (Mantenemos el término conocido)
-          { key: "emitir_receta", label: "Nueva Receta", icon: "Pill", href: "/prescriptions/new" },
-          // Emisión de Informes (Soporte Clínico/Documental)
-          { key: "emitir_informe", label: "Generar Informe Clínico", icon: "Clipboard", href: "/reports/new" }, 
-          // Órdenes de Diagnóstico (Laboratorio, Imagenología)
-          { key: "ordenes_dx", label: "Órdenes de Diagnóstico", icon: "Stethoscope", href: "/diagnosis/new" },
-        ],
-      },
-      
-      // CONSOLIDACIÓN 2: Referencias y Derivaciones (Acción de Interoperabilidad)
-      {
-        key: "referencias_derivaciones",
-        label: "Referencias y Derivaciones",
-        icon: "Share2",
-        href: "/referrals/new",
-      },
-    ],
-  },
-  
-  // Módulo de Operaciones de Práctica (Alquiler y Abastecimiento)
-  { 
-    key: "operaciones_practica", 
-    label: "Operaciones de Práctica", 
-    icon: "Building", // Ícono para reflejar la Renta de Espacios
-    isGroup: true,
-    children: [
-      { key: "renta_espacios", label: "Renta de Espacios Clínicos", icon: "Building", href: "/space-reservation" },
-      { key: "compra_insumos", label: "Compra de Insumos", icon: "ShoppingBag", href: "/marketplace-insumos" },
-    ],
-  },
-  
-  // El resto del menú
-  { key: "configuracion", label: "Configuración", icon: "Settings", href: "/settings" },
-  { key: "ayuda", label: "Ayuda y Soporte", icon: "HelpCircle", href: "/help" },
-],
-
-      // 4. ROL: SPECIALIST (Especialista)
-      specialist: [
-        { key: "dashboard", label: "Panel Especialista", icon: "BarChart3", href: "/professional-dashboard" },
-        {
-          key: "practice",
-          label: "Gestión Especializada",
-          icon: "Stethoscope",
-          isGroup: true,
-          children: [
-            { key: "appointments", label: "Consultas", icon: "Calendar", href: "/appointment-booking", badge: "3" },
-            { key: "patients", label: "Pacientes", icon: "Users", href: "/patients" },
-            { key: "procedures", label: "Procedimientos", icon: "Activity", href: "/procedures" },
             {
-              key: "actions",
-              label: "Acciones",
-              icon: "Zap",
-              isGroup: true,
-              children: [
-                { key: "new_prescription", label: "Nueva Receta", icon: "FileText", href: "/prescriptions/new" },
-                { key: "new_diagnosis", label: "Nuevo Diagnóstico", icon: "Stethoscope", href: "/diagnosis/new" },
-                { key: "new_referral", label: "Derivar", icon: "Share2", href: "/referrals/new" },
-              ],
+              key: "active_rx",
+              label: "Recetas Activas",
+              icon: "Pill",
+              href: "/prescription-management",
+            },
+            {
+              key: "medical_history",
+              label: "Historial Médico",
+              icon: "FileStack",
+              href: "/medical-history",
             },
           ],
         },
-        { key: "spaces", label: "Espacios Médicos", icon: "Building", href: "/space-reservation" },
-        { key: "marketplace", label: "Suministros", icon: "Package", href: "/marketplace-hub" },
+        {
+          key: "marketplace",
+          label: "Marketplace",
+          icon: "ShoppingBag",
+          href: "/marketplace-hub",
+        },
       ],
 
-      // 5. ROL: PROVIDER (Proveedor) - Adaptado
-      provider: providerMenu,
+      // 🏥 CLÍNICA
+      clinic: (() => {
+        const menu = [
+          {
+            key: "clinic_panels",
+            label: "Paneles de Clínica",
+            icon: "Home",
+            isGroup: true,
+            children: [
+              {
+                key: "clinic_today",
+                label: "Resumen Ejecutivo",
+                icon: "Home",
+                href: "/clinic-dashboard",
+              },
+              {
+                key: "clinic_ops_live",
+                label: "Operaciones",
+                icon: "Activity",
+                href: "/clinic/operations",
+              },
+              {
+                key: "clinic_management",
+                label: "Modo Condominio",
+                icon: "Building",
+                href: "/clinic/management",
+              },
+            ],
+          },
 
-      // 6. ROL: ASSOCIATION (Asociación/Colegio)
-      association: [
-        { key: "dashboard", label: "Panel Colegio", icon: "Shield", href: "/college-admin" },
-        { key: "roster", label: "Padrón", icon: "Users", href: "/college-admin/roster" },
-        { key: "verification", label: "Verificaciones", icon: "CheckCircle", href: "/college-admin/verification", badge: "12" },
-        { key: "verifier_panel", label: "Panel Verificador", icon: "FileCheck", href: "/entity/verifier" },
-        { key: "sanctions", label: "Sanciones", icon: "AlertTriangle", href: "/college-admin/sanctions" },
-        { key: "reports", label: "Reportes", icon: "FileText", href: "/college-admin/reports" },
-        { key: "settings", label: "Configuración", icon: "Settings", href: "/college-admin/settings" },
+          {
+            key: "operations",
+            label: "Operaciones Diarias",
+            icon: "Activity",
+            isGroup: true,
+            children: [
+              {
+                key: "clinic_appointments",
+                label: "Citas y Agenda",
+                icon: "CalendarDays",
+                href: "/clinic/appointments",
+              },
+              {
+                key: "clinic_spaces",
+                label: "Gestión de Espacios",
+                icon: "Building2",
+                href: "/clinic/spaces",
+              },
+            ],
+          },
+
+          {
+            key: "inventory",
+            label: "Inventario y Compras",
+            icon: "Package",
+            isGroup: true,
+            children: [
+              {
+                key: "inventory_stock",
+                label: "Inventario",
+                icon: "Boxes",
+                href: "/clinic/inventory",
+              },
+              {
+                key: "inventory_purchases",
+                label: "Órdenes de Compra",
+                icon: "ShoppingCart",
+                href: "/clinic/purchase-orders",
+              },
+            ],
+          },
+
+          {
+            key: "financial",
+            label: "Finanzas y Cobertura",
+            icon: "DollarSign",
+            isGroup: true,
+            children: [],
+          },
+        ];
+
+        // ✅ AQUI VA EXACTAMENTE LA SOLUCIÓN
+        // ✅ Inyectar Finanzas y Cobertura (rutas nuevas)
+        const financialItem = menu.find((x) => x.key === "financial");
+        if (financialItem) {
+          financialItem.children = [
+            {
+              key: "clinic_billing",
+              label: "Facturas y Pagos",
+              icon: "CreditCard",
+              href: "/clinic/billing",
+            },
+            {
+              key: "clinic_authorizations",
+              label: "Pre-autorizaciones",
+              icon: "Shield",
+              href: "/clinic/authorizations",
+            },
+          ];
+        }
+
+        // ✅ Marketplace según flags del onboarding
+        const canSell = clinicProfile?.actsAsProvider;
+        const canBuy = clinicProfile?.actsAsBuyer;
+
+        if (canSell || canBuy) {
+          const marketplaceChildren = [];
+
+          if (canBuy) {
+            marketplaceChildren.push({
+              key: "clinic_marketplace_buy",
+              label: "Comprar en B2B",
+              icon: "ShoppingBag",
+              href: "/marketplace/b2b",
+            });
+          }
+
+          if (canSell) {
+            marketplaceChildren.push({
+              key: "clinic_marketplace_sell",
+              label: "Catálogo B2B",
+              icon: "Store",
+              href: "/provider/b2b",
+            });
+          }
+
+          if (marketplaceChildren.length) {
+            menu.push({
+              key: "clinic_marketplace",
+              label: "Marketplace",
+              icon: "Store",
+              isGroup: true,
+              children: marketplaceChildren,
+            });
+          }
+        }
+
+        return menu;
+      })(),
+
+      doctor: [
+        {
+          key: "dashboard",
+          label: "Panel Principal",
+          icon: "Home",
+          href: "/professional-dashboard",
+        },
+        {
+          key: "patients",
+          label: "Pacientes y Consultas",
+          icon: "Users",
+          isGroup: true,
+          children: [
+            {
+              key: "patient_list",
+              label: "Lista de Pacientes",
+              icon: "List",
+              href: "/patients",
+            },
+            {
+              key: "appointments",
+              label: "Citas Programadas",
+              icon: "CalendarDays",
+              href: "/appointment-booking",
+            },
+            {
+              key: "clinical_notes",
+              label: "Notas Clínicas",
+              icon: "Notebook",
+              href: "/notes",
+            },
+          ],
+        },
+        {
+          key: "rx_diag",
+          label: "Recetas y Diagnósticos",
+          icon: "FileText",
+          isGroup: true,
+          children: [
+            {
+              key: "new_rx",
+              label: "Crear Nueva Receta",
+              icon: "Pencil",
+              href: "/prescriptions/new",
+            },
+            {
+              key: "rx_history",
+              label: "Historial de Recetas",
+              icon: "History",
+              href: "/prescription-management",
+            },
+            {
+              key: "diag_new",
+              label: "Nuevo Diagnóstico",
+              icon: "Stethoscope",
+              href: "/diagnosis/new",
+            },
+            {
+              key: "diag_results",
+              label: "Resultados",
+              icon: "ClipboardList",
+              href: "/diagnosis/results",
+            },
+          ],
+        },
+        {
+          key: "medical_indicators",
+          label: "Indicadores Médicos",
+          icon: "BarChart3",
+          href: "/medical-indicators",
+        },
+        {
+          key: "spaces",
+          label: "Reserva de Espacios",
+          icon: "CalendarCheck",
+          href: "/space-reservation",
+        },
+        {
+          key: "marketplace",
+          label: "Marketplace Profesional",
+          icon: "Store",
+          href: "/marketplace-hub",
+        },
       ],
 
-      // 7. ROL: COLLEGE_ADMIN
-      college_admin: [
-        { key: "dashboard", label: "Panel Colegio", icon: "Shield", href: "/college-admin" },
-        { key: "roster", label: "Padrón", icon: "Users", href: "/college-admin/roster" },
-        { key: "verification", label: "Verificaciones", icon: "CheckCircle", href: "/college-admin/verification", badge: "12" },
-        { key: "verifier_panel", label: "Panel Verificador", icon: "FileCheck", href: "/entity/verifier" },
-        { key: "sanctions", label: "Sanciones", icon: "AlertTriangle", href: "/college-admin/sanctions" },
-        { key: "reports", label: "Reportes", icon: "FileText", href: "/college-admin/reports" },
-        { key: "settings", label: "Configuración", icon: "Settings", href: "/college-admin/settings" },
-      ],
-
-      // 8. ROL: VERIFIER
-      verifier: [
-        { key: "dashboard", label: "Panel Verificador", icon: "FileCheck", href: "/entity/verifier" },
-        { key: "pending", label: "Pendientes", icon: "Clock", href: "/entity/verifier?tab=pending", badge: "8" },
-        { key: "approved", label: "Aprobados", icon: "CheckCircle", href: "/entity/verifier?tab=approved" },
-        { key: "rejected", label: "Rechazados", icon: "XCircle", href: "/entity/verifier?tab=rejected" },
-      ],
-
-      // 9. ROL: SUPER_ADMIN
-      super_admin: [
-        { key: "dashboard", label: "Admin", icon: "Settings", href: "/admin-dashboard" },
-        { key: "audit", label: "Auditoría", icon: "Eye", href: "/admin/audit" },
-        { key: "config", label: "Configuración Global", icon: "Cog", href: "/admin/config" },
-        { key: "catalogs", label: "Catálogos Maestros", icon: "Database", href: "/admin/catalogs" },
+      college: [
+        {
+          key: "dashboard",
+          label: "Panel Principal",
+          icon: "Home",
+          href: "/college-dashboard",
+        },
       ],
     };
-  }, [badges, normalizedBusinessType, modulos]); // Dependencias actualizadas
 
-  const navItems = itemsByRole?.[userRole] || itemsByRole?.patient;
+    return otherRolesMenus[userRole] || otherRolesMenus.patient;
+  }, [userRole, badges, providerModules, normalizedBusinessType, clinicProfile]);
+
+  // ===========================================================
+  // === LÓGICA DE NAVEGACIÓN Y RENDER =========================
+  // ===========================================================
+  useEffect(() => {
+    const path = location?.pathname || "";
+    const findActiveKey = (items, pathToMatch) => {
+      for (const item of items) {
+        if (item.href && pathToMatch.startsWith(item.href)) return item.key;
+        if (item.children) {
+          const childKey = findActiveKey(item.children, pathToMatch);
+          if (childKey) return childKey;
+        }
+      }
+      return null;
+    };
+    const found = findActiveKey(navItems, path);
+    if (found) setActiveKey(found);
+  }, [location?.pathname, navItems]);
+
+  const toggleGroup = (key) =>
+    setExpandedGroups((p) => ({ ...p, [key]: !p[key] }));
 
   const handleNavigation = (href, key) => {
     setActiveKey(key);
@@ -439,132 +698,135 @@ doctor: [
     onMobileClose?.();
   };
 
-  // 6. FUNCIÓN DE RENDERIZADO RECURSIVO
   const renderItem = (item, depth = 0) => {
-    const isActive = activeKey === item?.key;
-    const isExpanded = !!expandedGroups?.[item?.key];
-    const isDisabled = item?.disabled;
-    
-    // Clases comunes para ítems (incluyendo estado de deshabilitado)
+    const isActive = activeKey === item.key;
+    const isExpanded = expandedGroups[item.key];
     const itemClasses = cn(
       "w-full justify-start mb-1 px-3 py-2 text-sm font-medium transition-colors",
       isCollapsed ? "px-2" : "px-3",
-      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-      isDisabled && "opacity-40 pointer-events-none" // Estilo si está deshabilitado
+      isActive
+        ? "bg-primary/10 text-primary"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
     );
 
-    // Lógica para renderizar grupos
-    if (item?.isGroup) {
+    if (item.isGroup) {
       return (
-        <div key={item?.key} className="mb-1">
+        <div key={item.key}>
           <Button
-            className={cn("w-full justify-between", itemClasses)} 
             variant="ghost"
-            onClick={() => !isDisabled && toggleGroup(item?.key)} // No expandir si está deshabilitado
+            className={cn("w-full justify-between", itemClasses)}
+            onClick={() => toggleGroup(item.key)}
           >
             <div className="flex items-center space-x-3">
-              <Icon name={item?.icon} size={18} />
-              {!isCollapsed && <span>{item?.label}</span>}
+              <Icon name={item.icon} size={18} />
+              {!isCollapsed && <span>{item.label}</span>}
             </div>
             {!isCollapsed && (
               <Icon
                 name="ChevronDown"
                 size={16}
-                className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                className={`transition-transform ${
+                  isExpanded ? "rotate-180" : ""
+                }`}
               />
             )}
           </Button>
           {!isCollapsed && isExpanded && (
             <div className="ml-4 mt-1 space-y-1">
-              {item?.children?.map((c) => renderItem(c, depth + 1))}
+              {item.children?.map((c) => renderItem(c, depth + 1))}
             </div>
           )}
         </div>
       );
     }
 
-    // Lógica para renderizar ítems simples
-    const badgeValue = item?.badge;
-    const badgeElement = (badgeValue !== undefined && badgeValue !== null && badgeValue !== 0) && (
-        <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full min-w-[20px] text-center">
-            {badgeValue}
-        </span>
-    );
-
     return (
       <Button
-        key={item?.key}
+        key={item.key}
         variant="ghost"
-        onClick={() => !isDisabled && handleNavigation(item?.href, item?.key)}
-        className={cn(itemClasses, depth > 0 ? "ml-2" : "", "justify-start")}
+        onClick={() => handleNavigation(item.href, item.key)}
+        className={cn(itemClasses, depth > 0 && "ml-2")}
       >
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-3">
-            <Icon name={item?.icon} size={18} />
-            {!isCollapsed && <span>{item?.label}</span>}
-          </div>
-          {!isCollapsed && badgeElement}
+        <div className="flex items-center space-x-3">
+          <Icon name={item.icon} size={18} />
+          {!isCollapsed && <span>{item.label}</span>}
         </div>
       </Button>
     );
   };
 
-  // 7. DETERMINACIÓN DEL ETIQUETA DEL ROL
   const roleLabel =
-    userRole === "provider" ? `Proveedor • ${normalizedBusinessType.toUpperCase()}`
-    // ... (resto de roles)
-    : userRole === "patient" ? "Paciente"
-      : userRole === "doctor" ? "Médico"
-      : userRole === "specialist" ? "Especialista"
-      : userRole === "clinic" ? "Clínica"
-      : userRole === "association" ? "Colegio"
-      : userRole === "college_admin" ? "Colegio"
-      : userRole === "verifier" ? "Verificador"
-      : userRole === "super_admin" ? "Admin" : "Usuario";
+    userRole === "provider"
+      ? `Proveedor • ${normalizedBusinessType.toUpperCase()}`
+      : userRole === "clinic"
+      ? "Clínica"
+      : userRole === "doctor"
+      ? "Médico"
+      : userRole === "college"
+      ? "Colegio Profesional"
+      : userRole === "patient"
+      ? "Paciente"
+      : "Usuario";
 
-  // 8. RENDERIZADO FINAL
+  const sidebarTitle = displayName || roleLabel;
+  const sidebarSubtitle = displayName ? roleLabel : "";
+
   return (
     <>
       {isMobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onMobileClose} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onMobileClose}
+        />
       )}
       <aside
         className={`fixed top-16 left-0 bottom-0 z-50 bg-card border-r border-border transition-all duration-300 ${
           isCollapsed ? "w-16" : "w-64"
-        } ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 ${className}`}
+        } ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 ${className}`}
       >
-        {/* Cabecera y Botón de Colapso */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
-                <Icon name="Activity" size={14} color="var(--color-primary)" />
+            <div className="flex flex-col w-full">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
+                  <Icon name="Activity" size={14} className="text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {sidebarTitle}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-foreground">{roleLabel}</span>
+              {sidebarSubtitle && (
+                <span className="mt-0.5 ml-8 text-[11px] text-muted-foreground uppercase tracking-wide">
+                  {sidebarSubtitle}
+                </span>
+              )}
             </div>
           )}
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleCollapse}
-            className="hidden lg:flex min-w-touch min-h-touch"
+            className="hidden lg:flex"
           >
-            <Icon name={isCollapsed ? "ChevronRight" : "ChevronLeft"} size={16} />
+            <Icon
+              name={isCollapsed ? "ChevronRight" : "ChevronLeft"}
+              size={16}
+            />
           </Button>
         </div>
 
-        {/* Contenedor de Navegación */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-          {navItems?.map((it) => renderItem(it))}
+          {navItems.map((it) => renderItem(it))}
         </nav>
 
-        {/* Pie de Página: Ayuda y Configuración */}
         <div className="p-4 border-t border-border">
           {!isCollapsed ? (
             <div className="space-y-2">
               <Button
                 variant="ghost"
-                className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
+                className="w-full justify-start text-sm"
                 onClick={() => navigate("/help")}
               >
                 <Icon name="HelpCircle" size={16} className="mr-3" />
@@ -572,7 +834,7 @@ doctor: [
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-sm text-muted-foreground hover:text-foreground"
+                className="w-full justify-start text-sm"
                 onClick={() => navigate("/settings")}
               >
                 <Icon name="Settings" size={16} className="mr-3" />
@@ -585,7 +847,6 @@ doctor: [
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate("/help")}
-                className="w-full min-h-touch"
                 title="Ayuda y Soporte"
               >
                 <Icon name="HelpCircle" size={18} />
@@ -594,7 +855,6 @@ doctor: [
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate("/settings")}
-                className="w-full min-h-touch"
                 title="Configuración"
               >
                 <Icon name="Settings" size={18} />

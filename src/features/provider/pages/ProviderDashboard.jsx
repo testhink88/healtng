@@ -12,6 +12,7 @@ import {
   getPharmacyOrders,
 } from "@/utils/mockDataPharmacy";
 
+// Función para definir los módulos disponibles según el tipo de proveedor
 const modulesFor = (type = "mixto") => {
   switch (type) {
     case "producto":
@@ -53,6 +54,7 @@ const modulesFor = (type = "mixto") => {
   }
 };
 
+// Función para mostrar el tipo de negocio
 const typeLabel = (type) =>
   type === "producto"
     ? "Productos"
@@ -60,6 +62,20 @@ const typeLabel = (type) =>
     ? "Servicios"
     : "Mixto (Productos + Servicios)";
 
+// Descripción del tipo de negocio
+const businessDescription = (type) => {
+  const t = String(type || "mixto").toLowerCase();
+  switch (t) {
+    case "producto":
+      return "Administra tus productos y operaciones desde un solo lugar";
+    case "servicio":
+      return "Administra tus servicios y operaciones desde un solo lugar";
+    default:
+      return "Administra tus productos, servicios y operaciones desde un solo lugar";
+  }
+};
+
+// Componente de tarjeta KPI
 const KPICard = ({ title, value, icon, change = null, trend = null }) => (
   <div className="bg-card border border-border rounded-lg p-4">
     <div className="flex items-center justify-between mb-2">
@@ -132,33 +148,37 @@ export default function ProviderDashboard() {
       return;
     }
 
+    const normalizedType = String(p.businessType || "mixto").toLowerCase();
+
     // Si es proveedor de PRODUCTOS, sembramos demo de farmacia (si no existe).
-    if ((p.businessType || "mixto") === "producto") {
+    if (normalizedType === "producto") {
       seedPharmacyDemo();
     }
 
     const normalized = {
       ...p,
-      businessType: p.businessType || "mixto",
-      businessModules: p.businessModules || modulesFor(p.businessType || "mixto"),
+      businessType: normalizedType,
+      businessModules: p.businessModules || modulesFor(normalizedType),
     };
     setProfile(normalized);
 
-    // KPIs desde mocks
-    if ((p.businessType || "mixto") === "producto") {
+    // KPIs desde mocks SOLO para tipo "producto" (por ahora)
+    if (normalizedType === "producto") {
       const a = getPharmacyAnalytics();
       const prods = getPharmacyProducts();
       const allOrders = getPharmacyOrders();
-      const completed = allOrders.filter((o) => o.type === "sale" && o.status === "completed").length;
+      const completed = allOrders.filter(
+        (o) => o.type === "sale" && o.status === "completed"
+      ).length;
 
       setStats((s) => ({
         ...s,
-        totalProducts: a.totalProducts,
-        lowStock: a.lowStock,
+        totalProducts: a.totalProducts ?? prods.length ?? 0,
+        lowStock: a.lowStock ?? 0,
         pendingOrders: allOrders.filter((o) => o.status === "pending").length,
         completedOrders: completed,
-        monthlyRevenue: Math.round(a.salesToday * 30), // aproximación
-        salesToday: a.salesToday,
+        monthlyRevenue: Math.round((a.salesToday || 0) * 30),
+        salesToday: a.salesToday || 0,
       }));
     }
   }, [navigate]);
@@ -180,7 +200,7 @@ export default function ProviderDashboard() {
               Tipo de negocio: {typeLabel(profile.businessType)}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Administra tus productos, servicios y operaciones desde un solo lugar
+              {businessDescription(profile.businessType)}
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -203,10 +223,28 @@ export default function ProviderDashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {mods.inventario && (
-          <KPICard title="Total Productos" value={stats.totalProducts} icon="Package" change={2.5} trend="up" />
+          <KPICard
+            title="Total Productos"
+            value={stats.totalProducts}
+            icon="Package"
+            change={2.5}
+            trend="up"
+          />
         )}
-        <KPICard title="Pedidos Pendientes" value={stats.pendingOrders} icon="ShoppingCart" change={12} trend="up" />
-        {mods.agenda && <KPICard title="Citas Hoy" value={stats.todayAppointments} icon="Calendar" />}
+        <KPICard
+          title="Pedidos Pendientes"
+          value={stats.pendingOrders}
+          icon="ShoppingCart"
+          change={12}
+          trend="up"
+        />
+        {mods.agenda && (
+          <KPICard
+            title="Citas Hoy"
+            value={stats.todayAppointments}
+            icon="Calendar"
+          />
+        )}
         <KPICard
           title="Ingresos del Mes"
           value={`$${(stats.monthlyRevenue || 0).toLocaleString()}`}
@@ -215,18 +253,42 @@ export default function ProviderDashboard() {
           trend="up"
         />
         {mods.inventario && (
-          <KPICard title="Stock Bajo" value={stats.lowStock} icon="AlertTriangle" change={-5} trend="down" />
+          <KPICard
+            title="Stock Bajo"
+            value={stats.lowStock}
+            icon="AlertTriangle"
+            change={-5}
+            trend="down"
+          />
         )}
         {mods.despacho && (
-          <KPICard title="Despachos Pendientes" value={stats.pendingShipments} icon="Truck" />
+          <KPICard
+            title="Despachos Pendientes"
+            value={stats.pendingShipments}
+            icon="Truck"
+          />
         )}
-        {mods.agenda && <KPICard title="Servicios Activos" value={stats.activeServices} icon="Activity" />}
-        <KPICard title="Órdenes Completadas" value={stats.completedOrders} icon="CheckCircle" change={15.2} trend="up" />
+        {mods.agenda && (
+          <KPICard
+            title="Servicios Activos"
+            value={stats.activeServices}
+            icon="Activity"
+          />
+        )}
+        <KPICard
+          title="Órdenes Completadas"
+          value={stats.completedOrders}
+          icon="CheckCircle"
+          change={15.2}
+          trend="up"
+        />
       </div>
 
       {/* Módulos */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Módulos de Negocio Activos</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">
+          Módulos de Negocio Activos
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {mods.inventario && (
             <ModuleCard

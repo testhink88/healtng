@@ -1,15 +1,77 @@
 {
-  "short_name": "healtng",
-  "name": "healtng",
+  "lang": "es-VE",
+  "dir": "ltr",
+  "name": "Healtng",
+  "short_name": "Healtng",
+  "description": "Healtng: busca y gestiona servicios y productos de salud de forma simple, en un solo lugar.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait",
+  "theme_color": "#0A46E4",
+  "background_color": "#FFFFFF",
+  "categories": ["health", "medical", "productivity"],
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "shortcuts": [
+    {
+      "name": "Nueva Cita",
+      "short_name": "Cita",
+      "description": "Agendar una nueva consulta",
+      "url": "/appointment-booking",
+      "icons": [{ "src": "/icons/shortcut-calendar.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Buscar Servicios",
+      "short_name": "Buscar",
+      "description": "Explorar servicios y especialidades",
+      "url": "/doctor-discovery",
+      "icons": [{ "src": "/icons/shortcut-search.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Mis Recetas",
+      "short_name": "Recetas",
+      "description": "Ver y gestionar prescripciones",
+      "url": "/prescription-management",
+      "icons": [{ "src": "/icons/shortcut-pill.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ],
+  "prefer_related_applications": false
 }
