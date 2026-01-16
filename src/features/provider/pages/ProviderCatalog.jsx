@@ -1,532 +1,387 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Helmet } from "react-helmet";
 import { useNavigate } from "react-router-dom";
-
-import BreadcrumbNavigation from "@/components/ui/BreadcrumbNavigation";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/AppIcon";
+import Input from "@/components/ui/Input";
 
-// Componentes específicos del catálogo B2B
-import CatalogFilters from "./components/CatalogFilters";
-import CatalogTable from "./components/CatalogTable";
-import AddItemModal from "./components/AddItemModal";
-import DeleteConfirmModal from "./components/DeleteConfirmModal";
-import BulkActionModal from "./components/BulkActionModal";
+// 🔑 MISMA CLAVE QUE INVENTARIO
+const B2B_CATALOG_STORAGE_KEY = "healtng_provider_b2b_catalog_v1";
 
-// Clave compartida con ProviderInventory
-const B2B_CATALOG_STORAGE_KEY = "mock:b2bCatalog";
-
-// ***************************************************************
-// MOCK DATA (fallback si aún no hay nada publicado)
-// ***************************************************************
-const mockCatalogData = [
-  {
-    id: 1,
-    name: "Ibuprofeno 400mg",
-    code: "MED-001",
-    type: "product",
-    category: "medicamentos",
-    price: 8.5,
-    stock: 150,
-    minStock: 20,
-    status: "active",
-    targetAudience: "b2b",
-  },
-  {
-    id: 2,
-    name: "Consulta Cardiología",
-    code: "SRV-001",
-    type: "service",
-    category: "consultas",
-    price: 85,
-    duration: 45,
-    status: "active",
-    professionalSpecialties: ["cardiologia"],
-    targetAudience: "b2b",
-  },
-  {
-    id: 3,
-    name: "Paracetamol 500mg",
-    code: "MED-002",
-    type: "product",
-    category: "medicamentos",
-    price: 3.25,
-    stock: 0,
-    minStock: 50,
-    status: "active",
-    targetAudience: "b2b",
-  },
-  {
-    id: 4,
-    name: "Análisis de Sangre Completo",
-    code: "LAB-001",
-    type: "service",
-    category: "examenes",
-    price: 35,
-    duration: 15,
-    status: "active",
-    requiresMedicalOrder: true,
-    targetAudience: "b2b",
-  },
-];
-
-// ***************************************************************
-// COMPONENTE PRINCIPAL: MI CATÁLOGO B2B
-// ***************************************************************
-const ProviderCatalog = () => {
+export default function ProviderCatalog() {
   const navigate = useNavigate();
+  
+  // --- Estados ---
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const [catalogItems, setCatalogItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
-
-  // Filtros
-  const [filters, setFilters] = useState({
-    search: "",
-    category: "",
-    subcategory: "",
-    type: "", // "product" | "service"
-    status: "",
-    priceMin: "",
-    priceMax: "",
+  // --- Modal Estados ---
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null); 
+  
+  // Formulario enriquecido
+  const [formData, setFormData] = useState({
+    price: "",
+    moq: "",
+    description: "",
+    status: "active",
+    lab: "",          // Nuevo: Laboratorio
+    expiryDate: "",   // Nuevo: Vencimiento
+    image: null       // Nuevo: Foto (Base64)
   });
 
-  // Modales
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [deleteItem, setDeleteItem] = useState(null);
-  const [bulkAction, setBulkAction] = useState("");
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  // ------------------------------------------------------------------
-  // 1) Carga inicial del catálogo
-  // ------------------------------------------------------------------
+  // 1. Cargar Datos
   useEffect(() => {
-    const loadCatalogData = async () => {
-      setLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        let initial = [];
-
-        try {
-          // Intentar leer lo publicado desde inventario (mock)
-          const raw = localStorage.getItem(B2B_CATALOG_STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              initial = parsed.filter(
-                (item) =>
-                  !item.targetAudience ||
-                  item.targetAudience === "b2b" ||
-                  item.targetAudience === "both"
-              );
-            }
-          }
-        } catch (err) {
-          console.error("Error leyendo mock:b2bCatalog:", err);
-        }
-
-        if (!initial.length) {
-          initial = mockCatalogData;
-        }
-
-        setCatalogItems(initial);
-      } catch (error) {
-        console.error("Error loading catalog:", error);
-        setCatalogItems(mockCatalogData);
-      } finally {
-        setLoading(false);
+    try {
+      const raw = localStorage.getItem(B2B_CATALOG_STORAGE_KEY);
+      if (raw) {
+        setItems(JSON.parse(raw));
       }
-    };
-
-    loadCatalogData();
+    } catch (e) {
+      console.error("Error cargando catálogo", e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ------------------------------------------------------------------
-  // 2) Normalización de ítems
-  // ------------------------------------------------------------------
-  const normalizedItems = useMemo(() => {
-    return (catalogItems || []).map((item, index) => {
-      const code =
-        item.code ||
-        item.sku ||
-        item.barcode ||
-        `ITEM-${item.id || index + 1}`;
-
-      const stock =
-        typeof item.stock === "number"
-          ? item.stock
-          : typeof item.quantity === "number"
-          ? item.quantity
-          : 0;
-
-      const minStock =
-        typeof item.minStock === "number"
-          ? item.minStock
-          : typeof item.lowStockThreshold === "number"
-          ? item.lowStockThreshold
-          : 0;
-
-      const type =
-        item.type || (item.duration || item.timeSlots ? "service" : "product");
-
-      const status =
-        item.status || (item.publishedAt ? "active" : "draft");
-
-      return {
-        ...item,
-        code,
-        stock,
-        minStock,
-        type,
-        status,
-      };
-    });
-  }, [catalogItems]);
-
-  // ------------------------------------------------------------------
-  // 3) Filtro reactivo
-  // ------------------------------------------------------------------
+  // 2. Guardar Datos (Persistencia)
   useEffect(() => {
-    let filtered = [...normalizedItems];
-
-    // Búsqueda texto
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter((item) => {
-        const name = item.name?.toLowerCase() || "";
-        const code = item.code?.toLowerCase() || "";
-        const desc = item.description?.toLowerCase() || "";
-        return (
-          name.includes(searchTerm) ||
-          code.includes(searchTerm) ||
-          desc.includes(searchTerm)
-        );
-      });
+    if (!loading) {
+      localStorage.setItem(B2B_CATALOG_STORAGE_KEY, JSON.stringify(items));
     }
+  }, [items, loading]);
 
-    // Categoría / Subcategoría
-    if (filters.category) {
-      filtered = filtered.filter((item) => item.category === filters.category);
-    }
-    if (filters.subcategory) {
-      filtered = filtered.filter(
-        (item) => item.subcategory === filters.subcategory
-      );
-    }
+  // 3. Filtrado
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            item.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" ? true : item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, searchTerm, statusFilter]);
 
-    // Tipo: product / service
-    if (filters.type) {
-      filtered = filtered.filter((item) => item.type === filters.type);
-    }
+  // --- Handlers ---
 
-    // Estado (incluye "out_of_stock" solo para productos)
-    if (filters.status) {
-      if (filters.status === "out_of_stock") {
-        filtered = filtered.filter(
-          (item) => item.type === "product" && item.stock === 0
-        );
-      } else {
-        filtered = filtered.filter((item) => item.status === filters.status);
+  const handleEditClick = (item) => {
+    setEditingItem(item);
+    setFormData({
+      price: item.price || 0,
+      moq: item.moq || 1,
+      description: item.description || "",
+      status: item.status || "draft",
+      lab: item.lab || "",
+      expiryDate: item.expiryDate || "",
+      image: item.image || null
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Convertir imagen a Base64 para guardarla localmente
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setFormData(prev => ({ ...prev, image: reader.result }));
+        };
+        reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = () => {
+    if (!editingItem) return;
+
+    const updatedItems = items.map(i => {
+      if (i.id === editingItem.id) {
+        return {
+          ...i,
+          price: Number(formData.price),
+          moq: Number(formData.moq),
+          description: formData.description,
+          status: formData.status,
+          lab: formData.lab,           // Guardar Lab
+          expiryDate: formData.expiryDate, // Guardar Fecha
+          image: formData.image        // Guardar Foto
+        };
       }
-    }
-
-    // Rango de precio
-    if (filters.priceMin) {
-      const min = parseFloat(filters.priceMin);
-      if (!Number.isNaN(min)) {
-        filtered = filtered.filter((item) => item.price >= min);
-      }
-    }
-    if (filters.priceMax) {
-      const max = parseFloat(filters.priceMax);
-      if (!Number.isNaN(max)) {
-        filtered = filtered.filter((item) => item.price <= max);
-      }
-    }
-
-    setFilteredItems(filtered);
-    setSelectedItems([]);
-  }, [filters, normalizedItems]);
-
-  // ------------------------------------------------------------------
-  // Handlers básicos
-  // ------------------------------------------------------------------
-  const handleFiltersChange = (newFilters) => setFilters(newFilters);
-
-  const handleClearFilters = () =>
-    setFilters({
-      search: "",
-      category: "",
-      subcategory: "",
-      type: "",
-      status: "",
-      priceMin: "",
-      priceMax: "",
+      return i;
     });
 
-  const handleEditItem = (item) => {
-    setEditItem(item);
-    setIsAddModalOpen(true);
+    setItems(updatedItems);
+    setIsEditModalOpen(false);
+    setEditingItem(null);
   };
 
-  const handleDeleteItem = (item) => {
-    setDeleteItem(item);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDeleteItem = async (item) => {
-    if (!item) return;
-    setSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setCatalogItems((prev) => prev.filter((i) => i.id !== item.id));
-      setSelectedItems((prev) => prev.filter((id) => id !== item.id));
-      setIsDeleteModalOpen(false);
-      setDeleteItem(null);
-    } catch (error) {
-      console.error("Error deleting item:", error);
-    } finally {
-      setSaving(false);
+  const handleDelete = (id) => {
+    if (confirm("¿Eliminar del catálogo B2B?")) {
+      setItems(prev => prev.filter(i => i.id !== id));
     }
   };
 
-  // ------------------------------------------------------------------
-  // Acciones masivas
-  // ------------------------------------------------------------------
-  const handleBulkAction = (action) => {
-    if (!selectedItems.length) {
-      alert("Selecciona al menos un artículo.");
-      return;
-    }
-    setBulkAction(action);
-    setIsBulkModalOpen(true);
-  };
-
-  const confirmBulkAction = async (action, actionData) => {
-    setSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      switch (action) {
-        case "export":
-          console.log("Exportando items:", selectedItems);
-          break;
-
-        case "update_pricing":
-          setCatalogItems((prev) =>
-            prev.map((item) => {
-              if (!selectedItems.includes(item.id)) return item;
-              if ((item.type || "product") !== "product") return item;
-
-              let price = item.price ?? 0;
-              const { mode, value } = actionData || {};
-
-              if (mode === "percent_inc") price = price * (1 + value / 100);
-              if (mode === "percent_dec") price = price * (1 - value / 100);
-              if (mode === "absolute_inc") price = price + value;
-              if (mode === "absolute_dec") price = Math.max(0, price - value);
-
-              return { ...item, price: Number(price.toFixed(2)) };
-            })
-          );
-          break;
-
-        case "deactivate":
-          setCatalogItems((prev) =>
-            prev.map((item) =>
-              selectedItems.includes(item.id)
-                ? { ...item, status: "inactive" }
-                : item
-            )
-          );
-          break;
-
-        case "delete":
-          setCatalogItems((prev) =>
-            prev.filter((item) => !selectedItems.includes(item.id))
-          );
-          break;
-
-        default:
-          break;
-      }
-
-      setSelectedItems([]);
-      setIsBulkModalOpen(false);
-      setBulkAction("");
-    } catch (error) {
-      console.error("Error performing bulk action:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ------------------------------------------------------------------
-  // Guardar / actualizar item individual
-  // ------------------------------------------------------------------
-  const handleSaveItem = async (itemData) => {
-    setSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-
-      if (editItem) {
-        setCatalogItems((prev) =>
-          prev.map((item) =>
-            item.id === editItem.id ? { ...itemData, id: editItem.id } : item
-          )
-        );
-      } else {
-        const newItem = {
-          ...itemData,
-          id: Date.now(),
-          targetAudience: itemData.targetAudience || "b2b",
-        };
-        setCatalogItems((prev) => [newItem, ...prev]);
-      }
-
-      setIsAddModalOpen(false);
-      setEditItem(null);
-    } catch (error) {
-      console.error("Error saving item:", error);
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
   return (
-    <>
-      <Helmet>
-        <title>Mi Catálogo B2B - Healtng</title>
-      </Helmet>
-
-      <div className="p-6 max-w-7xl mx-auto">
-        <BreadcrumbNavigation
-          items={[
-            { label: "Inicio", path: "/provider/dashboard" },
-            { label: "Marketplace B2B", path: "/provider/b2b" },
-            { label: "Mi catálogo B2B" },
-          ]}
-        />
-
-        {/* Header de página */}
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">
-              Mi catálogo B2B
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Gestiona los productos y servicios que aparecen en tu tienda del
-              marketplace empresarial.
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/provider/b2b")}
-            >
-              <Icon name="Store" size={16} className="mr-2" />
-              Ver mi tienda
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => navigate("/provider/b2b/publish")}
-              iconName="Plus"
-              iconPosition="left"
-            >
-              Publicar producto
-            </Button>
-          </div>
-        </header>
-
-        {/* Filtros + acciones masivas */}
-        <div className="mb-6">
-          <CatalogFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-            resultCount={filteredItems.length}
-            onBulkAction={handleBulkAction}
-            selectedCount={selectedItems.length}
-          />
+    <div className="p-6 max-w-7xl mx-auto pb-20">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Catálogo</h1>
+          <p className="text-sm text-gray-500">Enriquece la información de tus productos para mejorar la conversión B2B.</p>
         </div>
-
-        {/* Tabla principal */}
-        <CatalogTable
-          items={filteredItems}
-          selectedItems={selectedItems}
-          onSelectionChange={setSelectedItems}
-          onEdit={handleEditItem}
-          onDelete={handleDeleteItem}
-          loading={loading}
-        />
-
-        {/* Barra inferior cuando hay selección */}
-        {selectedItems.length > 0 && (
-          <div className="sticky bottom-0 left-0 right-0 bg-primary/90 text-primary-foreground p-3 rounded-t-lg shadow-2xl flex justify-between items-center mt-6">
-            <p className="font-medium">
-              {selectedItems.length} artículo
-              {selectedItems.length !== 1 ? "s" : ""} seleccionado
-              {selectedItems.length !== 1 ? "s" : ""}
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedItems([])}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-            >
-              <Icon name="X" size={16} className="mr-2" />
-              Limpiar selección
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/provider/b2b")}>
+                <Icon name="ArrowLeft" size={16} className="mr-2"/> Dashboard
             </Button>
-          </div>
-        )}
-
-        {/* Modales */}
-        <AddItemModal
-          isOpen={isAddModalOpen}
-          onClose={() => {
-            setIsAddModalOpen(false);
-            setEditItem(null);
-          }}
-          onSave={handleSaveItem}
-          editItem={editItem}
-        />
-
-        <DeleteConfirmModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => {
-            setIsDeleteModalOpen(false);
-            setDeleteItem(null);
-          }}
-          onConfirm={confirmDeleteItem}
-          item={deleteItem}
-          loading={saving}
-        />
-
-        <BulkActionModal
-          isOpen={isBulkModalOpen}
-          onClose={() => {
-            setIsBulkModalOpen(false);
-            setBulkAction("");
-          }}
-          onConfirm={confirmBulkAction}
-          action={bulkAction}
-          selectedItems={selectedItems}
-          loading={saving}
-        />
+            <Button variant="default" onClick={() => navigate("/provider/inventory")}>
+                <Icon name="Plus" size={16} className="mr-2"/> Traer de Inventario
+            </Button>
+        </div>
       </div>
-    </>
-  );
-};
 
-export default ProviderCatalog;
+      {/* Filtros */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+            <Input 
+                placeholder="Buscar por nombre, laboratorio o SKU..." 
+                icon="Search" 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className="flex gap-2 overflow-x-auto">
+            {['all', 'active', 'draft', 'inactive'].map(status => (
+                <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                        statusFilter === status 
+                        ? 'bg-blue-600 text-white shadow-sm' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    {status === 'all' ? 'Todos' : status === 'active' ? 'Publicados' : status === 'draft' ? 'Borradores' : 'Inactivos'}
+                </button>
+            ))}
+        </div>
+      </div>
+
+      {/* Tabla Enriquecida */}
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-500 font-medium border-b">
+                    <tr>
+                        <th className="px-4 py-3 w-16">Foto</th>
+                        <th className="px-4 py-3">Producto / Laboratorio</th>
+                        <th className="px-4 py-3">Stock / Vencimiento</th>
+                        <th className="px-4 py-3">Precios (Bs.)</th>
+                        <th className="px-4 py-3">Estado</th>
+                        <th className="px-4 py-3 text-right">Editar</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                    {filteredItems.length === 0 ? (
+                        <tr><td colSpan={6} className="p-8 text-center text-gray-400">Sin resultados.</td></tr>
+                    ) : (
+                        filteredItems.map(item => (
+                            <tr key={item.id} className="hover:bg-gray-50">
+                                {/* Columna Foto */}
+                                <td className="px-4 py-3">
+                                    <div className="w-10 h-10 rounded bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                                        {item.image ? (
+                                            <img src={item.image} alt="mini" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Icon name="Image" size={16} className="text-gray-400" />
+                                        )}
+                                    </div>
+                                </td>
+                                
+                                {/* Columna Detalles */}
+                                <td className="px-4 py-3">
+                                    <div className="font-bold text-gray-900">{item.name}</div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-xs text-blue-600 font-mono bg-blue-50 px-1 rounded">{item.code}</span>
+                                        {item.lab && <span className="text-xs text-gray-500">• {item.lab}</span>}
+                                    </div>
+                                </td>
+
+                                {/* Columna Logística */}
+                                <td className="px-4 py-3">
+                                    <div className={item.stock <= item.minStock ? "text-red-600 font-bold" : "text-gray-700"}>
+                                        {item.stock} {item.unit}
+                                    </div>
+                                    {item.expiryDate && (
+                                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                                            <Icon name="Calendar" size={10} /> 
+                                            Vence: {item.expiryDate}
+                                        </div>
+                                    )}
+                                </td>
+
+                                {/* Columna Precio */}
+                                <td className="px-4 py-3">
+                                    <div className="font-medium text-gray-900">
+                                        {item.price > 0 ? `Bs. ${item.price.toLocaleString()}` : <span className="text-red-400 italic">--</span>}
+                                    </div>
+                                    {item.moq > 1 && <div className="text-xs text-gray-400">Min: {item.moq} un.</div>}
+                                </td>
+
+                                {/* Columna Estado */}
+                                <td className="px-4 py-3">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                        item.status === 'active' ? 'bg-green-100 text-green-800' :
+                                        item.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-gray-100 text-gray-600'
+                                    }`}>
+                                        {item.status === 'active' ? 'Activo' : 'Borrador'}
+                                    </span>
+                                </td>
+
+                                <td className="px-4 py-3 text-right space-x-2">
+                                    <Button size="xs" variant="outline" onClick={() => handleEditClick(item)}>
+                                        <Icon name="Edit2" size={14} />
+                                    </Button>
+                                    <Button size="xs" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                                        <Icon name="Trash2" size={14} />
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
+            </table>
+        </div>
+      </div>
+
+      {/* --- MODAL DE EDICIÓN ENRIQUECIDO --- */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
+            
+            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl z-10 overflow-hidden flex flex-col max-h-[95vh]">
+                <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-lg text-gray-900">Configurar Publicación</h3>
+                        <p className="text-sm text-gray-500">{editingItem?.name}</p>
+                    </div>
+                    <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                        <Icon name="X" size={20} />
+                    </button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    {/* COLUMNA IZQUIERDA: IMAGEN */}
+                    <div className="md:col-span-1 space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-2">Fotografía del Producto</label>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors relative h-48">
+                                {formData.image ? (
+                                    <>
+                                        <img src={formData.image} alt="Preview" className="w-full h-full object-contain rounded" />
+                                        <button 
+                                            onClick={() => setFormData({...formData, image: null})}
+                                            className="absolute top-2 right-2 bg-white rounded-full p-1 shadow hover:text-red-500"
+                                        >
+                                            <Icon name="Trash2" size={14} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <label className="cursor-pointer flex flex-col items-center w-full h-full justify-center">
+                                        <Icon name="Image" size={32} className="text-gray-300 mb-2" />
+                                        <span className="text-xs text-blue-600 font-medium">Subir Imagen</span>
+                                        <span className="text-[10px] text-gray-400 mt-1">Máx 2MB</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <h4 className="text-xs font-bold text-blue-800 mb-1 flex items-center gap-1">
+                                <Icon name="Info" size={12} /> Stock Actual
+                            </h4>
+                            <p className="text-sm text-blue-900">{editingItem?.stock} {editingItem?.unit}</p>
+                        </div>
+                    </div>
+
+                    {/* COLUMNA DERECHA: DATOS */}
+                    <div className="md:col-span-2 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Precio Unitario (Bs.)</label>
+                                <Input 
+                                    type="number" 
+                                    value={formData.price} 
+                                    onChange={e => setFormData({...formData, price: e.target.value})}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Compra Mínima (MOQ)</label>
+                                <Input 
+                                    type="number" 
+                                    value={formData.moq} 
+                                    onChange={e => setFormData({...formData, moq: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Laboratorio / Marca</label>
+                                <Input 
+                                    value={formData.lab} 
+                                    onChange={e => setFormData({...formData, lab: e.target.value})}
+                                    placeholder="Ej. Genéricos de Vzla"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Fecha Vencimiento</label>
+                                <Input 
+                                    type="date"
+                                    value={formData.expiryDate} 
+                                    onChange={e => setFormData({...formData, expiryDate: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Descripción Detallada</label>
+                            <textarea 
+                                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
+                                value={formData.description}
+                                onChange={e => setFormData({...formData, description: e.target.value})}
+                                placeholder="Composición, indicaciones, etc..."
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Estado</label>
+                            <select 
+                                className="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white"
+                                value={formData.status}
+                                onChange={e => setFormData({...formData, status: e.target.value})}
+                            >
+                                <option value="draft">Borrador (Solo yo lo veo)</option>
+                                <option value="active">Activo (Visible en tienda)</option>
+                                <option value="inactive">Pausado (No disponible)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+                    <Button variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg" onClick={handleSave}>
+                        Guardar y Publicar
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

@@ -1,11 +1,11 @@
 import React from "react";
 import ClinicLayout from "@/pages/clinic-layout";
-import ProviderBillingManagement from "@/features/provider/pages/ProviderBillingManagement";
+import ClinicBillingManagement from "./ClinicBillingManagement";
 
 const ClinicBilling = () => {
   return (
     <ClinicLayout>
-      <ProviderBillingManagement />
+      <ClinicBillingManagement />
     </ClinicLayout>
   );
 };

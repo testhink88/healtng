@@ -1,41 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Icon from "@/components/AppIcon";
 
-const STORAGE_KEY_CATALOG = "mock:b2bCatalog";
+// 🔑 CLAVE CORRECTA (La misma de Inventario y Catálogo)
+const B2B_CATALOG_STORAGE_KEY = "healtng_provider_b2b_catalog_v1";
 const STORAGE_KEY_ORDERS = "mock:b2bOrders";
 
-// Datos de ejemplo por defecto (si aún no hay catálogo guardado)
-const DEFAULT_PRODUCTS = [
-  {
-    id: 1,
-    name: "Paracetamol 500mg",
-    sku: "PAR-500-001",
-    category: "Medicamentos",
-    price: 2500,
-    bulkPrice: 2200,
-    minOrder: 100,
-    quantity: 1500,
-    description: "Analgésico y antipirético de venta libre",
-    isPublished: true,
-    status: "published",
-  },
-  {
-    id: 2,
-    name: "Tensiómetro Digital",
-    sku: "TEN-DIG-002",
-    category: "Equipos Médicos",
-    price: 125000,
-    bulkPrice: 115000,
-    minOrder: 5,
-    quantity: 25,
-    description: "Monitor de presión arterial automático con pantalla LCD",
-    isPublished: true,
-    status: "published",
-  },
-];
-
+// Datos Mock para Pedidos (ya que aún no conectamos módulo de órdenes real)
 const DEFAULT_ORDERS = [
   {
     id: "B2B-001",
@@ -44,421 +16,249 @@ const DEFAULT_ORDERS = [
     date: "2024-01-15",
     status: "pending",
     total: 450000,
-    items: [
-      { name: "Paracetamol 500mg", quantity: 200, price: 2200 },
-      { name: "Ibuprofeno 400mg", quantity: 100, price: 2500 },
-    ],
+    items: 2,
+  },
+  {
+    id: "B2B-002",
+    customerName: "Farmacia Ahorro",
+    customerType: "Farmacia",
+    date: "2024-01-14",
+    status: "completed",
+    total: 125000,
+    items: 5,
   },
 ];
 
-const ProviderB2B = () => {
+export default function ProviderB2B() {
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("catalog");
-  const [products, setProducts] = useState([]);
+  // Estado
+  const [catalogStats, setCatalogStats] = useState({ total: 0, active: 0, draft: 0, lowStock: 0 });
+  const [recentProducts, setRecentProducts] = useState([]);
   const [orders, setOrders] = useState(DEFAULT_ORDERS);
 
-  // Cargar catálogo y pedidos desde localStorage
+  // 1. Cargar Datos Reales del Storage
   useEffect(() => {
+    // --- Cargar Catálogo ---
     try {
-      const storedCatalog = JSON.parse(
-        localStorage.getItem(STORAGE_KEY_CATALOG) || "[]"
-      );
-      if (storedCatalog.length) {
-        setProducts(storedCatalog);
-      } else {
-        setProducts(DEFAULT_PRODUCTS);
+      const raw = localStorage.getItem(B2B_CATALOG_STORAGE_KEY);
+      if (raw) {
+        const items = JSON.parse(raw);
+        setCatalogStats({
+          total: items.length,
+          active: items.filter((i) => i.status === "active" || i.isPublished).length,
+          draft: items.filter((i) => i.status === "draft" || i.status === "inactive" || !i.status).length,
+          lowStock: items.filter((i) => (i.stock || 0) <= (i.minStock || 0)).length,
+        });
+        // Tomar los últimos 3 para mostrar preview
+        setRecentProducts(items.slice(0, 3));
       }
     } catch (err) {
-      console.error("Error cargando catálogo B2B:", err);
-      setProducts(DEFAULT_PRODUCTS);
+      console.error("Error cargando stats catálogo:", err);
     }
 
+    // --- Cargar Pedidos (Mock por ahora) ---
     try {
-      const storedOrders = JSON.parse(
-        localStorage.getItem(STORAGE_KEY_ORDERS) || "[]"
-      );
-      if (storedOrders.length) {
-        setOrders(storedOrders);
-      }
+      const savedOrders = localStorage.getItem(STORAGE_KEY_ORDERS);
+      if (savedOrders) setOrders(JSON.parse(savedOrders));
     } catch (err) {
-      console.error("Error cargando pedidos B2B:", err);
+      console.error("Error pedidos:", err);
     }
   }, []);
 
-  // Persistir catálogo cuando cambie
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_CATALOG, JSON.stringify(products));
-  }, [products]);
-
-  // Persistir pedidos mock (por si luego los modificas)
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(orders));
-  }, [orders]);
-
-  const publishedProductsCount = useMemo(
-    () =>
-      products.filter(
-        (p) => p?.isPublished || p?.status === "published"
-      ).length,
-    [products]
-  );
-
-  const totalB2BSales = useMemo(
-    () => orders.reduce((sum, o) => sum + (o?.total || 0), 0),
-    [orders]
-  );
-
-  const uniqueCustomers = useMemo(
-    () => new Set(orders.map((o) => o?.customerName)).size,
-    [orders]
-  );
-
-  const handleTogglePublish = (id) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const currentlyPublished = p?.isPublished ?? p?.status === "published";
-        return {
-          ...p,
-          isPublished: !currentlyPublished,
-          status: currentlyPublished ? "draft" : "published",
-        };
-      })
-    );
-  };
-
-  const handleEditProduct = (_product) => {
-    // Opcional: aquí podrías guardar en localStorage el producto a editar
-    // y leerlo en el wizard. Por ahora simplemente abrimos el wizard vacío.
-    navigate("/provider/b2b/publish");
-  };
-
-  const handleViewInMarketplace = () => {
-    // Por ahora usamos un vendorId mock; luego se reemplaza por el real del proveedor.
-    const VENDOR_ID = "vendor-001";
-    navigate(`/marketplace/vendor/${VENDOR_ID}`);
-  };
-
-  const handleOpenPublishingWizard = () => {
-    navigate("/provider/b2b/publish");
-  };
-
-  const handleGoToB2BPurchases = () => {
-    // Esto será tu pestaña "Compras B2B" → marketplace tipo B2C pero profesional
-    navigate("/marketplace/b2b");
-  };
-
-  const ProductCard = ({ product }) => {
-    const isPublished = product?.isPublished ?? product?.status === "published";
-
-    return (
-      <div className="bg-card border border-border rounded-lg p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-foreground">{product?.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              SKU: {product?.sku || "—"}
-            </p>
-            {product?.category && (
-              <p className="text-sm text-muted-foreground">
-                {product?.category}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <span
-              className={`w-3 h-3 rounded-full ${
-                isPublished ? "bg-green-500" : "bg-gray-400"
-              }`}
-            />
-            <span className="text-xs text-muted-foreground">
-              {isPublished ? "Publicado" : "Borrador"}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-4 text-sm">
-          {product?.price && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Precio unitario:</span>
-              <span className="text-foreground">
-                Bs. {Number(product?.price)?.toLocaleString("es-VE")}
-              </span>
-            </div>
-          )}
-
-          {product?.bulkPrice && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Precio mayorista:</span>
-              <span className="text-foreground font-medium">
-                Bs. {Number(product?.bulkPrice)?.toLocaleString("es-VE")}
-              </span>
-            </div>
-          )}
-
-          {product?.minOrder && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pedido mínimo:</span>
-              <span className="text-foreground">
-                {product?.minOrder} unidades
-              </span>
-            </div>
-          )}
-
-          {(product?.quantity || product?.stock) && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Stock:</span>
-              <span className="text-foreground">
-                {product?.quantity ?? product?.stock} unidades
-              </span>
-            </div>
-          )}
-        </div>
-
-        {product?.description && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-            {product?.description}
-          </p>
-        )}
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => handleEditProduct(product)}
-          >
-            <Icon name="Edit2" size={14} className="mr-2" />
-            Editar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={handleViewInMarketplace}
-          >
-            <Icon name="Eye" size={14} className="mr-2" />
-            Ver en Marketplace
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleTogglePublish(product.id)}
-          >
-            <Icon
-              name={isPublished ? "EyeOff" : "Upload"}
-              size={14}
-              className="mr-1"
-            />
-            {isPublished ? "Ocultar" : "Publicar"}
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const OrderCard = ({ order }) => (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="font-semibold text-foreground">{order?.id}</h3>
-          <p className="text-sm text-muted-foreground">{order?.customerName}</p>
-          <p className="text-sm text-muted-foreground">
-            {order?.customerType}
-          </p>
-        </div>
-        <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
-          {order?.status === "pending" ? "Pendiente" : order?.status}
-        </span>
-      </div>
-
-      <div className="space-y-2 mb-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Fecha:</span>
-          <span className="text-foreground">
-            {new Date(order?.date)?.toLocaleDateString("es-VE")}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Total:</span>
-          <span className="text-foreground font-medium">
-            Bs. {Number(order?.total)?.toLocaleString("es-VE")}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Artículos:</span>
-          <span className="text-foreground">{order?.items?.length}</span>
-        </div>
-      </div>
-
-      <div className="flex space-x-2">
-        <Button variant="outline" size="sm" className="flex-1">
-          <Icon name="Eye" size={14} className="mr-2" />
-          Ver Detalles
-        </Button>
-        <Button variant="default" size="sm" className="flex-1">
-          <Icon name="CheckCircle" size={14} className="mr-2" />
-          Procesar
-        </Button>
-      </div>
-    </div>
-  );
+  // Totales financieros (Mock)
+  const totalSales = useMemo(() => orders.reduce((sum, o) => sum + o.total, 0), [orders]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      
+      {/* 1. Header Estratégico */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Marketplace B2B</h1>
-          <p className="text-muted-foreground">
-            Gestiona tu presencia en el marketplace empresarial
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Marketplace B2B</h1>
+          <p className="text-gray-500 mt-1">Visión general de tu canal de ventas corporativo.</p>
         </div>
-
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={handleViewInMarketplace}>
-            <Icon name="ExternalLink" size={16} className="mr-2" />
-            Ver Mi Tienda
-          </Button>
-          <Button variant="default" onClick={handleOpenPublishingWizard}>
-            <Icon name="Plus" size={16} className="mr-2" />
-            Publicar Producto
-          </Button>
+        <div className="flex gap-2">
+           <Button variant="outline" onClick={() => navigate("/marketplace/vendor/me")}>
+              <Icon name="Store" size={16} className="mr-2"/> Vista de mi Tienda
+           </Button>
+           {/* CTA Principal: Lleva a la gestión real */}
+           <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => navigate("/provider/b2b/catalog")}>
+              <Icon name="Settings" size={16} className="mr-2"/> Gestionar Catálogo
+           </Button>
         </div>
       </div>
 
-      {/* Tabs principales: Mi catálogo / Compras B2B */}
-      <div className="flex space-x-1 mb-4 bg-muted p-1 rounded-lg w-fit">
-        <Button
-          variant={activeTab === "catalog" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("catalog")}
-        >
-          <Icon name="Package" size={16} className="mr-2" />
-          Mi catálogo B2B
-        </Button>
-        <Button
-          variant={activeTab === "orders" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("orders")}
-        >
-          <Icon name="ShoppingCart" size={16} className="mr-2" />
-          Pedidos B2B ({orders?.length})
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleGoToB2BPurchases}
-        >
-          <Icon name="Store" size={16} className="mr-2" />
-          Compras B2B
-        </Button>
+      {/* 2. KPIs de Alto Nivel */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard 
+            title="Total Productos" 
+            value={catalogStats.total} 
+            icon="Package" 
+            desc="En base de datos"
+        />
+        <MetricCard 
+            title="Activos en Tienda" 
+            value={catalogStats.active} 
+            icon="CheckCircle" 
+            color="text-green-600" 
+            bg="bg-green-50"
+            desc="Visibles para clientes"
+        />
+        <MetricCard 
+            title="Pendientes / Borradores" 
+            value={catalogStats.draft} 
+            icon="FileEdit" 
+            color="text-yellow-600" 
+            bg="bg-yellow-50"
+            desc="Requieren atención"
+            onClick={() => navigate("/provider/b2b/catalog")} // Acceso rápido a corregir
+        />
+        <MetricCard 
+            title="Ventas del Mes" 
+            value={`Bs. ${totalSales.toLocaleString()}`} 
+            icon="DollarSign" 
+            color="text-blue-600" 
+            bg="bg-blue-50"
+            desc={`${orders.length} pedidos procesados`}
+        />
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Productos Publicados</p>
-              <p className="text-2xl font-bold text-foreground">
-                {publishedProductsCount}
-              </p>
+      {/* 3. Panel de Acciones (El "Hub") */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Columna Izquierda: Accesos Directos Operativos */}
+        <div className="lg:col-span-2 space-y-6">
+            <h2 className="text-xl font-bold text-gray-900">Gestión Operativa</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Card: Catálogo */}
+                <div 
+                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                    onClick={() => navigate("/provider/b2b/catalog")}
+                >
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                            <Icon name="List" size={24} className="text-blue-600" />
+                        </div>
+                        <Icon name="ArrowRight" size={20} className="text-gray-300 group-hover:text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">Catálogo y Precios</h3>
+                    <p className="text-sm text-gray-500 mt-2">
+                        Edita productos, define precios mayoristas (MOQ), sube imágenes y activa items traídos del inventario.
+                    </p>
+                </div>
+
+                {/* Card: Pedidos */}
+                <div 
+                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                    onClick={() => navigate("/provider/orders")}
+                >
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
+                            <Icon name="ShoppingCart" size={24} className="text-purple-600" />
+                        </div>
+                        <Icon name="ArrowRight" size={20} className="text-gray-300 group-hover:text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">Pedidos Recibidos</h3>
+                    <p className="text-sm text-gray-500 mt-2">
+                        Procesa órdenes de compra de Clínicas y Farmacias. Gestiona estados y facturación.
+                    </p>
+                </div>
             </div>
-            <Icon name="Package" size={24} className="text-blue-500" />
-          </div>
+
+            {/* Lista Previa de Productos Recientes */}
+            <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+                    <h3 className="font-semibold text-gray-900">Últimos Productos Agregados</h3>
+                    <Button variant="ghost" size="sm" onClick={() => navigate("/provider/b2b/catalog")}>Ver todos</Button>
+                </div>
+                {recentProducts.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                        No hay productos en el catálogo B2B aún. 
+                        <br/>
+                        <span className="text-sm">Ve a Inventario para enviar productos aquí.</span>
+                    </div>
+                ) : (
+                    <div className="divide-y">
+                        {recentProducts.map((p) => (
+                            <div key={p.id} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50">
+                                <div>
+                                    <p className="font-medium text-gray-900">{p.name}</p>
+                                    <p className="text-xs text-gray-500">{p.code} • {p.category}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                        p.status === 'active' || p.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {p.status === 'active' || p.isPublished ? 'Activo' : 'Borrador'}
+                                    </span>
+                                    <p className="text-sm font-semibold">Bs. {p.price}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Pedidos B2B</p>
-              <p className="text-2xl font-bold text-foreground">
-                {orders?.length}
-              </p>
+        {/* Columna Derecha: Resumen de Actividad (Pedidos) */}
+        <div className="space-y-6">
+            <div className="bg-white border rounded-xl shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Últimos Pedidos</h3>
+                <div className="space-y-4">
+                    {orders.map(order => (
+                        <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg hover:border-blue-300 transition-colors cursor-pointer">
+                            <div>
+                                <p className="font-bold text-sm text-gray-800">{order.customerName}</p>
+                                <p className="text-xs text-gray-500">{order.id} • {new Date(order.date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-bold text-sm">Bs. {order.total.toLocaleString()}</p>
+                                <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                    {order.status}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <Button className="w-full mt-4" variant="outline" onClick={() => navigate("/provider/orders")}>
+                    Ver todos los pedidos
+                </Button>
             </div>
-            <Icon name="ShoppingCart" size={24} className="text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Clientes B2B</p>
-              <p className="text-2xl font-bold text-foreground">
-                {uniqueCustomers}
-              </p>
+            
+            {/* Promo Card */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
+                <Icon name="TrendingUp" size={32} className="mb-4 text-blue-200" />
+                <h3 className="font-bold text-lg mb-2">Aumenta tus ventas</h3>
+                <p className="text-blue-100 text-sm mb-4">
+                    Los proveedores con más de 10 productos activos reciben un 40% más de órdenes.
+                </p>
+                <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50 border-none w-full" onClick={() => navigate("/provider/inventory")}>
+                    Ir a Inventario
+                </Button>
             </div>
-            <Icon name="Building2" size={24} className="text-purple-500" />
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Ventas B2B</p>
-              <p className="text-2xl font-bold text-foreground">
-                Bs. {totalB2BSales.toLocaleString("es-VE")}
-              </p>
-            </div>
-            <Icon name="DollarSign" size={24} className="text-orange-500" />
-          </div>
         </div>
       </div>
-
-      {/* CONTENIDO: Mi catálogo / Pedidos */}
-      {activeTab === "catalog" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Catálogo de Productos B2B
-            </h2>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                <Icon name="Filter" size={16} className="mr-2" />
-                Filtros
-              </Button>
-              <Button variant="outline" size="sm">
-                <Icon name="Upload" size={16} className="mr-2" />
-                Importar Catálogo
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products?.map((product) => (
-              <ProductCard key={product?.id} product={product} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {activeTab === "orders" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Pedidos B2B</h2>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                <Icon name="Filter" size={16} className="mr-2" />
-                Filtrar por Estado
-              </Button>
-              <Button variant="outline" size="sm">
-                <Icon name="Download" size={16} className="mr-2" />
-                Exportar
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders?.map((order) => (
-              <OrderCard key={order?.id} order={order} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
-};
+}
 
-export default ProviderB2B;
+// Componente visual para tarjetas de métricas
+const MetricCard = ({ title, value, icon, desc, color = "text-gray-600", bg = "bg-gray-100", onClick }) => (
+    <div 
+        className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between ${onClick ? 'cursor-pointer hover:border-blue-400 hover:shadow-md transition-all' : ''}`}
+        onClick={onClick}
+    >
+        <div className="flex justify-between items-start mb-2">
+            <div>
+                <p className="text-sm font-medium text-gray-500">{title}</p>
+                <h4 className="text-2xl font-bold text-gray-900 mt-1">{value}</h4>
+            </div>
+            <div className={`p-2 rounded-lg ${bg}`}>
+                <Icon name={icon} size={20} className={color} />
+            </div>
+        </div>
+        <p className="text-xs text-gray-400">{desc}</p>
+    </div>
+);

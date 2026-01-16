@@ -1,5 +1,5 @@
 // src/api/patients.js
-import { createMockClient } from "./_mockBase";
+import { createMockClient } from "../_mockBase";
 
 const client = createMockClient("healtng_patients_v1", {
   seed: [], // Se ha eliminado el seed para que no cargue datos mock al iniciar.
