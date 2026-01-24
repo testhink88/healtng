@@ -7,7 +7,7 @@ import Icon from "@/components/AppIcon";
 
 // LÓGICA CORE
 import SpecialtyDiagnosisCore from "./components/SpecialtyDiagnosisCore";
-import ReportConfigurator from "./components/ReportConfigurator"; // ✅ 1. IMPORTACIÓN NUEVA
+import ReportConfigurator from "./components/ReportConfigurator"; 
 
 import { encounterStorage } from "./utils/encounterStorage";
 import { MOCK_PATIENTS } from "@/mock/patients";
@@ -56,7 +56,7 @@ export default function NewDiagnosisForm() {
   const [diagnosisData, setDiagnosisData] = useState({});
   const [error, setError] = useState("");
 
-  // ✅ 2. ESTADO PARA CONTROLAR EL MODAL DE REPORTE
+  // ESTADO PARA CONTROLAR EL MODAL DE REPORTE
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const patientMeta = useMemo(() => {
@@ -109,7 +109,7 @@ export default function NewDiagnosisForm() {
     }
   };
 
-  // ✅ 3. MODIFICADO: VALIDACIÓN INICIAL Y APERTURA DE MODAL
+  // 3. VALIDACIÓN INICIAL Y APERTURA DE MODAL
   const handleInitialSave = () => {
     setError("");
 
@@ -126,7 +126,7 @@ export default function NewDiagnosisForm() {
     setIsReportModalOpen(true);
   };
 
-  // ✅ 4. NUEVO: GUARDADO DEFINITIVO (Viene del Modal)
+  // ✅ 4. GUARDADO DEFINITIVO Y CIERRE DE CICLO ADMINISTRATIVO
   const handleFinalConfirm = (finalReportText) => {
     const locals = getPatientsFromLS();
     const hasLS = locals.some((p) => String(p.id) === String(patientId));
@@ -139,17 +139,21 @@ export default function NewDiagnosisForm() {
       specialtyName: SPECIALTY_DIAGNOSIS_SCHEMAS[specialtyCode]?.name || specialtyCode,
       createdAt: new Date().toISOString(),
       doctorName: "Dr. Usuario Actual",
-      
-      data: diagnosisData,          // Data estructurada para el sistema
-      reportText: finalReportText,  // Data procesada para el PDF/Impresión
-      
+      data: diagnosisData,          
+      reportText: finalReportText,  
       preview: diagnosisData.main_diagnosis_cie10?.name || "Evolución sin diagnóstico CIE-10",
     };
 
     const updated = basePatients.map((p) => {
       if (String(p.id) !== String(patientId)) return p;
       const normalized = ensurePatientShape(p);
-      return { ...normalized, diagnoses: [diagnosisEvent, ...normalized.diagnoses] };
+      return { 
+        ...normalized, 
+        // 🔥 CAMBIO CRÍTICO: Actualizamos estatus para que la secretaria sepa que terminó
+        status: "active", 
+        lastVisit: new Date().toISOString(),
+        diagnoses: [diagnosisEvent, ...normalized.diagnoses] 
+      };
     });
 
     savePatientsToLS(updated);
@@ -161,31 +165,9 @@ export default function NewDiagnosisForm() {
     navigate(`/patients/${patientId}${scopeSuffix}`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
-        <div className="bg-white rounded-2xl p-8 shadow-sm flex items-center gap-3">
-          <Icon name="Loader2" size={20} className="animate-spin text-blue-600" />
-          <span className="text-gray-500 text-sm">Cargando expediente...</span>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="p-20 text-center text-gray-500">Cargando expediente...</div>;
 
-  if (!patient) {
-    return (
-      <div className="min-h-screen bg-gray-50 font-sans p-8">
-        <div className="max-w-md mx-auto bg-white rounded-2xl p-6 text-center shadow-sm border border-gray-200">
-          <Icon name="UserX" size={40} className="mx-auto text-gray-300 mb-4" />
-          <h1 className="text-lg font-medium text-gray-900">Paciente no disponible</h1>
-          <p className="text-sm text-gray-500 mt-2 mb-6">{error || "No se pudo cargar el ID solicitado."}</p>
-          <Button onClick={() => navigate(`/patients${scopeSuffix}`)} className="bg-[#0E39B1] text-white w-full justify-center">
-            Volver a la lista
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (!patient) return <div className="p-20 text-center">Error: Paciente no encontrado</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -213,7 +195,7 @@ export default function NewDiagnosisForm() {
                 Cancelar
               </button>
               <button
-                onClick={handleInitialSave} // ✅ CAMBIADO A INITIAL SAVE
+                onClick={handleInitialSave} 
                 className="px-6 py-2 rounded-xl text-sm text-white font-medium shadow-md shadow-blue-900/10 transition hover:opacity-90 flex items-center gap-2"
                 style={{ backgroundColor: BRAND_BLUE }}
               >
@@ -323,7 +305,7 @@ export default function NewDiagnosisForm() {
                 
                 <div className="space-y-3">
                   <Button
-                    onClick={handleInitialSave} // ✅ CAMBIADO A INITIAL SAVE
+                    onClick={handleInitialSave} 
                     className="w-full justify-center bg-[#0E39B1] text-white py-3.5 rounded-xl text-sm font-medium border-none shadow-md shadow-blue-900/10"
                   >
                     <Icon name="Save" size={18} className="mr-2" />
@@ -383,7 +365,7 @@ export default function NewDiagnosisForm() {
           </div>
         </div>
 
-        {/* ✅ 5. AQUÍ SE RENDERIZA EL MODAL DE REPORTE */}
+        {/* RENDERIZADO DEL MODAL */}
         <ReportConfigurator 
           isOpen={isReportModalOpen}
           onClose={() => setIsReportModalOpen(false)}
