@@ -1,123 +1,87 @@
-// src/pages/patient-list/index.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import Sidebar from '@/components/ui/Sidebar';
-import Header from '@/components/ui/Header';
-import Icon from '@/components/AppIcon';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import Sidebar from "@/components/ui/Sidebar";
+import Header from "@/components/ui/Header";
+import Icon from "@/components/AppIcon";
+import Button from "@/components/ui/Button";
+import { MOCK_PATIENTS } from "@/mock/patients";
 
 const PatientList = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const search = new URLSearchParams(location.search);
-  const isClinicScope = search.get('scope') === 'clinic';
+  const isClinicScope = search.get("scope") === "clinic";
+  const userRole = isClinicScope ? "clinic" : "doctor";
 
-  const userRole = isClinicScope ? 'clinic' : 'doctor';
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [patients, setPatients] = useState([]);
-  const [q, setQ] = useState('');
-  const [specialty, setSpecialty] = useState('');
-  const [doctor, setDoctor] = useState('');
+  const [q, setQ] = useState("");
 
-  // Modo médico: controles extra
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
-  const [sortBy, setSortBy] = useState('name');      // 'name' | 'lastVisit'
+  const [viewMode, setViewMode] = useState("table");
+  const [sortBy, setSortBy] = useState("lastVisit");
 
-  // Nombre del médico actual
-  const currentDoctor = useMemo(
-    () => localStorage.getItem('doctorName') || 'Dr. Pérez',
-    []
-  );
-
-  // Mock de pacientes (incluye >= 10 del Dr. Pérez)
   useEffect(() => {
-    const base = [
-      // >= 12 pacientes para Dr. Pérez
-      { id: '1',  name: 'María Elena González',   specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-14', age: 39, gender: 'Femenino', docId: 'V-12345678' },
-      { id: '2',  name: 'Carlos López Martín',    specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-11', age: 58, gender: 'Masculino', docId: 'V-87654321' },
-      { id: '3',  name: 'Elena Martínez Ruiz',    specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-17', age: 32, gender: 'Femenino',  docId: 'V-45678912' },
-      { id: '4',  name: 'Roberto Fernández Díaz', specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-19', age: 67, gender: 'Masculino', docId: 'V-78912345' },
-      { id: '5',  name: 'Sofía Jiménez Torres',   specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-13', age: 8,  gender: 'Femenino',  docId: 'V-34567891' },
-      { id: '6',  name: 'Luis Alberto Romero',     specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-15', age: 44, gender: 'Masculino', docId: 'V-23456789' },
-      { id: '7',  name: 'Patricia Salazar',        specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-09', age: 51, gender: 'Femenino',  docId: 'V-11223344' },
-      { id: '8',  name: 'Javier Rojas',            specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-07', age: 29, gender: 'Masculino', docId: 'V-99887766' },
-      { id: '9',  name: 'Camila Pacheco',          specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-05', age: 26, gender: 'Femenino',  docId: 'V-66778899' },
-      { id: '10', name: 'Ignacio Mendoza',         specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-03', age: 61, gender: 'Masculino', docId: 'V-55667788' },
-      { id: '11', name: 'Valentina Bravo',         specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-18', age: 22, gender: 'Femenino',  docId: 'V-44556677' },
-      { id: '12', name: 'Diego Castellanos',       specialty: 'Medicina General', doctor: 'Dr. Pérez',   lastVisit: '2025-01-16', age: 36, gender: 'Masculino', docId: 'V-33445566' },
-
-      // Otras especialidades y médicos
-      { id: '13', name: 'José Antonio Pérez',      specialty: 'Pediatría',       doctor: 'Dra. López',   lastVisit: '2025-01-17', age: 12, gender: 'Masculino', docId: 'V-22334455' },
-      { id: '14', name: 'Carmen Rosa Martínez',    specialty: 'Cardiología',     doctor: 'Dr. García',   lastVisit: '2025-01-11', age: 45, gender: 'Femenino',  docId: 'V-99887711' },
-      { id: '15', name: 'Ricardo Alejandro Silva', specialty: 'Dermatología',    doctor: 'Dra. Rivas',   lastVisit: '2025-01-13', age: 40, gender: 'Masculino', docId: 'V-88990011' },
-      { id: '16', name: 'Lucía Navarro',           specialty: 'Pediatría',       doctor: 'Dra. López',   lastVisit: '2025-01-10', age: 6,  gender: 'Femenino',  docId: 'V-77889900' },
-    ];
-
-    setPatients(base);
+    const stored = localStorage.getItem("MOCK_PATIENTS");
+    if (stored) setPatients(JSON.parse(stored));
+    else {
+      localStorage.setItem("MOCK_PATIENTS", JSON.stringify(MOCK_PATIENTS));
+      setPatients(MOCK_PATIENTS);
+    }
   }, []);
 
-  // Filtro por texto + combos (en modo clínica)
-  const baseFiltered = useMemo(() => {
-    return patients.filter((p) => {
-      const byQ =
-        !q ||
-        p.name.toLowerCase().includes(q.toLowerCase()) ||
-        p.docId?.toLowerCase().includes(q.toLowerCase());
+  const getPatientStatus = (dateStr) => {
+    if (!dateStr) return { label: "Nuevo", pill: "bg-primary/10 text-primary" };
 
-      const byS = !isClinicScope || !specialty || p.specialty === specialty;
-      const byD = !isClinicScope || !doctor || p.doctor === doctor;
+    const days = (new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24);
+    if (days < 30) return { label: "Activo", pill: "bg-emerald-500/10 text-emerald-700" };
+    if (days < 90) return { label: "Seguimiento", pill: "bg-amber-500/10 text-amber-700" };
+    return { label: "Inactivo", pill: "bg-muted text-muted-foreground" };
+  };
 
-      return byQ && byS && byD;
-    });
-  }, [patients, q, specialty, doctor, isClinicScope]);
+  const filteredPatients = useMemo(() => {
+    let result = [...patients];
 
-  // Modo médico: limitar a sus pacientes
-  const scoped = useMemo(() => {
-    if (isClinicScope) return baseFiltered;
-    return baseFiltered.filter((p) => p.doctor === currentDoctor);
-  }, [baseFiltered, isClinicScope, currentDoctor]);
-
-  // Orden
-  const sorted = useMemo(() => {
-    const arr = [...scoped];
-    if (sortBy === 'name') {
-      arr.sort((a, b) => a.name.localeCompare(b.name, 'es'));
-    } else if (sortBy === 'lastVisit') {
-      arr.sort((a, b) => new Date(b.lastVisit) - new Date(a.lastVisit)); // más reciente primero
+    if (q) {
+      const lowerQ = q.toLowerCase();
+      result = result.filter(
+        (p) =>
+          (p.name || p.fullName || "").toLowerCase().includes(lowerQ) ||
+          (p.docId || p.dni || "").toLowerCase().includes(lowerQ)
+      );
     }
-    return arr;
-  }, [scoped, sortBy]);
+
+    result.sort((a, b) => {
+      const aName = (a.name || a.fullName || "").toString();
+      const bName = (b.name || b.fullName || "").toString();
+      if (sortBy === "name") return aName.localeCompare(bName);
+      if (sortBy === "lastVisit") return new Date(b.lastVisit || 0) - new Date(a.lastVisit || 0);
+      return 0;
+    });
+
+    return result;
+  }, [patients, q, sortBy]);
 
   const openProfile = (id) => {
-    const suffix = isClinicScope ? '?scope=clinic' : '';
+    const suffix = isClinicScope ? "?scope=clinic" : "";
     navigate(`/patients/${id}${suffix}`);
   };
 
-  const clearFilters = () => {
-    setQ('');
-    setSpecialty('');
-    setDoctor('');
+  const handleQuickEvolution = (e, id) => {
+    e.stopPropagation();
+    navigate(`/patients/${id}/diagnosis/new`);
   };
 
-  const allSpecialties = useMemo(
-    () => Array.from(new Set(patients.map((p) => p.specialty))),
-    [patients]
-  );
-  const allDoctors = useMemo(
-    () => Array.from(new Set(patients.map((p) => p.doctor))),
-    [patients]
-  );
+  const clearFilters = () => setQ("");
+
+  const searchInput =
+    "w-full pl-10 pr-4 py-2.5 bg-muted/40 border border-border rounded-md text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        userRole={userRole}
-        onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      />
+      <Header userRole={userRole} onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <Sidebar
         userRole={userRole}
         isCollapsed={isSidebarCollapsed}
@@ -126,207 +90,239 @@ const PatientList = () => {
         onMobileClose={() => setIsMobileMenuOpen(false)}
       />
 
-      <main className={`pt-16 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-        <div className="p-6 max-w-6xl mx-auto">
-          {/* Título */}
-          <div className="mb-4 flex items-center justify-between">
+      <main className={`pt-16 transition-all duration-300 ${isSidebarCollapsed ? "lg:ml-16" : "lg:ml-64"}`}>
+        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {isClinicScope ? 'Pacientes del Centro' : 'Mis Pacientes'}
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                {isClinicScope ? "Directorio General" : "Mis Pacientes"}
               </h1>
-              <p className="text-muted-foreground">
-                {isClinicScope
-                  ? 'Listado con filtros por Especialidad y Médico'
-                  : `Pacientes asignados a ${currentDoctor}`}
+              <p className="text-sm text-muted-foreground mt-1">
+                {filteredPatients.length} expedientes registrados
               </p>
             </div>
-            <Button variant="outline" onClick={clearFilters}>
-              <Icon name="RotateCcw" size={16} className="mr-2" />
-              Limpiar Filtros
+
+            <Button
+              type="button"
+              className="bg-primary text-primary-foreground"
+              onClick={() => alert("Funcionalidad para crear paciente nuevo")}
+            >
+              <Icon name="Plus" size={18} className="mr-2" />
+              Nuevo Paciente
             </Button>
           </div>
 
-          {/* Filtros */}
-          <div className="bg-card rounded-lg border border-border p-4 mb-4">
-            <div className={`grid grid-cols-1 ${isClinicScope ? 'md:grid-cols-3' : 'md:grid-cols-3'} gap-3`}>
-              <Input
-                placeholder="Buscar por nombre o cédula..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                icon="Search"
-              />
+          {/* Toolbar */}
+          <div className="bg-card rounded-lg border border-border p-4 mb-6">
+            <div className="flex flex-col lg:flex-row gap-4 justify-between">
+              <div className="flex-1 max-w-lg relative">
+                <div className="absolute left-3 top-3 text-muted-foreground">
+                  <Icon name="Search" size={18} />
+                </div>
+                <input
+                  className={searchInput}
+                  placeholder="Buscar por nombre, cédula o historia..."
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
 
-              {isClinicScope ? (
-                <>
+              <div className="flex items-center gap-3 overflow-x-auto">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Orden:</span>
                   <select
-                    className="w-full py-2 px-3 rounded-md bg-input border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={specialty}
-                    onChange={(e) => setSpecialty(e.target.value)}
+                    className="bg-muted/40 border border-border text-sm rounded-md px-2 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
                   >
-                    <option value="">Especialidad (todas)</option>
-                    {allSpecialties.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
+                    <option value="lastVisit">Recientes</option>
+                    <option value="name">Alfabético</option>
                   </select>
-                  <select
-                    className="w-full py-2 px-3 rounded-md bg-input border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={doctor}
-                    onChange={(e) => setDoctor(e.target.value)}
+                </div>
+
+                <div className="flex bg-muted/40 rounded-md p-1 shrink-0 border border-border">
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`p-1.5 rounded-md transition-all ${
+                      viewMode === "table" ? "bg-card text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-label="Vista tabla"
                   >
-                    <option value="">Médico (todos)</option>
-                    {allDoctors.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </>
-              ) : (
-                // Controles extra para médico
-                <>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-muted-foreground">Ordenar por</label>
-                    <select
-                      className="flex-1 py-2 px-3 rounded-md bg-input border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                    >
-                      <option value="name">Nombre</option>
-                      <option value="lastVisit">Última visita</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <div className="inline-flex bg-muted/50 rounded-md p-1">
-                      <Button
-                        variant={viewMode === 'table' ? 'default' : 'ghost'}
-                        className="gap-2"
-                        onClick={() => setViewMode('table')}
-                        title="Vista lista"
-                      >
-                        <Icon name="List" size={16} />
-                      </Button>
-                      <Button
-                        variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                        className="gap-2"
-                        onClick={() => setViewMode('cards')}
-                        title="Vista tarjetas"
-                      >
-                        <Icon name="Grid" size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
+                    <Icon name="List" size={18} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("cards")}
+                    className={`p-1.5 rounded-md transition-all ${
+                      viewMode === "cards" ? "bg-card text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-label="Vista tarjetas"
+                  >
+                    <Icon name="Grid" size={18} />
+                  </button>
+                </div>
+
+                <Button variant="ghost" onClick={clearFilters}>
+                  Limpiar
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* CONTENIDO */}
-          {isClinicScope ? (
-            // === CLÍNICA: agrupado por especialidad ===
-            <div className="space-y-3">
-              {allSpecialties.map((grp) => {
-                const inGrp = sorted.filter((p) => p.specialty === grp);
-                if (inGrp.length === 0) return null;
+          {/* Empty */}
+          {filteredPatients.length === 0 ? (
+            <div className="text-center py-16 bg-card rounded-lg border border-border">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+                <Icon name="Users" size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">No se encontraron pacientes</h3>
+              <p className="text-muted-foreground text-sm mt-1">Ajusta el criterio de búsqueda.</p>
+            </div>
+          ) : viewMode === "table" ? (
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/30 text-muted-foreground font-medium uppercase text-xs border-b border-border">
+                    <tr>
+                      <th className="px-6 py-4">Paciente</th>
+                      <th className="px-6 py-4">Estado</th>
+                      <th className="px-6 py-4">Última Visita</th>
+                      <th className="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-border">
+                    {filteredPatients.map((p) => {
+                      const status = getPatientStatus(p.lastVisit);
+                      const name = p.name || p.fullName;
+                      const dni = p.docId || p.dni;
+
+                      return (
+                        <tr
+                          key={p.id}
+                          className="hover:bg-muted/20 transition-colors cursor-pointer group"
+                          onClick={() => openProfile(p.id)}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold border border-border">
+                                {(name || "P").charAt(0)}
+                              </div>
+                              <div>
+                                <div className="font-medium text-foreground">{name}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {dni} • {p.age ? `${p.age} años` : "—"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.pill}`}>
+                              {status.label}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">
+                                {p.lastVisit ? new Date(p.lastVisit).toLocaleDateString("es-VE") : "N/A"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {p.specialty || "General"}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => handleQuickEvolution(e, p.id)}
+                                title="Nueva Evolución"
+                                className="text-primary hover:text-primary"
+                              >
+                                <Icon name="Zap" size={18} />
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openProfile(p.id);
+                                }}
+                                title="Ver Perfil"
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <Icon name="ChevronRight" size={18} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredPatients.map((p) => {
+                const status = getPatientStatus(p.lastVisit);
+                const name = p.name || p.fullName;
+                const dni = p.docId || p.dni;
+
                 return (
-                  <div key={grp} className="border border-border rounded-lg">
-                    <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-b border-border">
-                      <div className="font-medium text-foreground">{grp}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {inGrp.length} {inGrp.length === 1 ? 'paciente' : 'pacientes'}
+                  <div
+                    key={p.id}
+                    className="bg-card rounded-lg border border-border p-5 hover:bg-muted/10 transition cursor-pointer"
+                    onClick={() => openProfile(p.id)}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-lg border border-border">
+                        {(name || "P").charAt(0)}
                       </div>
+                      <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${status.pill}`}>
+                        {status.label}
+                      </span>
                     </div>
-                    <ul className="divide-y divide-border">
-                      {inGrp.map((p) => (
-                        <li key={p.id} className="px-4 py-3 flex items-center justify-between">
-                          <div>
-                            <button
-                              className="text-primary hover:underline font-medium"
-                              onClick={() => openProfile(p.id)}
-                              title="Ver ficha del paciente"
-                            >
-                              {p.name}
-                            </button>
-                            <div className="text-xs text-muted-foreground">{p.doctor}</div>
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => openProfile(p.id)} title="Ver ficha">
-                            <Icon name="ExternalLink" size={16} />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
+
+                    <h3 className="font-semibold text-foreground text-lg mb-1 truncate">{name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">{dni}</p>
+
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 bg-muted/30 p-2 rounded-md border border-border">
+                      <Icon name="Calendar" size={14} />
+                      Última: {p.lastVisit ? new Date(p.lastVisit).toLocaleDateString("es-VE") : "Nunca"}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-xs justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openProfile(p.id);
+                        }}
+                      >
+                        Ver ficha
+                      </Button>
+
+                      <Button
+                        className="flex-1 text-xs justify-center bg-primary text-primary-foreground"
+                        onClick={(e) => handleQuickEvolution(e, p.id)}
+                      >
+                        <Icon name="Zap" size={12} className="mr-1" />
+                        Evolucionar
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
-              {sorted.length === 0 && (
-                <div className="p-8 text-center">
-                  <Icon name="Users" size={36} className="mx-auto mb-3 text-muted-foreground/60" />
-                  <p className="text-muted-foreground">No hay pacientes para los filtros seleccionados.</p>
-                </div>
-              )}
             </div>
-          ) : (
-            // === MÉDICO: lista plana o tarjetas ===
-            <>
-              {viewMode === 'table' ? (
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="hidden md:grid grid-cols-12 bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-                    <div className="col-span-6">Paciente</div>
-                    <div className="col-span-3">Especialidad</div>
-                    <div className="col-span-3 text-right">Última visita</div>
-                  </div>
-                  {sorted.map((p) => (
-                    <div
-                      key={p.id}
-                      className="grid grid-cols-12 px-4 py-3 border-t border-border text-sm hover:bg-muted/30"
-                    >
-                      <div className="col-span-12 md:col-span-6 flex items-center gap-2">
-                        <button
-                          className="text-primary hover:underline font-medium text-left"
-                          onClick={() => openProfile(p.id)}
-                          title="Ver ficha del paciente"
-                        >
-                          {p.name}
-                        </button>
-                        <span className="hidden md:inline text-xs text-muted-foreground">• {p.docId}</span>
-                      </div>
-                      <div className="col-span-6 md:col-span-3 text-muted-foreground">{p.specialty}</div>
-                      <div className="col-span-6 md:col-span-3 text-right text-muted-foreground">
-                        {new Date(p.lastVisit).toLocaleDateString('es-VE')}
-                      </div>
-                    </div>
-                  ))}
-                  {sorted.length === 0 && (
-                    <div className="p-8 text-center">
-                      <Icon name="Users" size={36} className="mx-auto mb-3 text-muted-foreground/60" />
-                      <p className="text-muted-foreground">No tienes pacientes que coincidan con la búsqueda.</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sorted.map((p) => (
-                    <div key={p.id} className="border border-border rounded-lg p-4 bg-card">
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground truncate">{p.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">{p.docId} • {p.gender} • {p.age} años</div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => openProfile(p.id)} title="Ver ficha">
-                          <Icon name="ExternalLink" size={16} />
-                        </Button>
-                      </div>
-                      <div className="mt-3 text-sm text-muted-foreground">
-                        {p.specialty} • Última visita: {new Date(p.lastVisit).toLocaleDateString('es-VE')}
-                      </div>
-                    </div>
-                  ))}
-                  {sorted.length === 0 && (
-                    <div className="col-span-full p-8 text-center border border-dashed border-border rounded-lg">
-                      <Icon name="Users" size={36} className="mx-auto mb-3 text-muted-foreground/60" />
-                      <p className="text-muted-foreground">No tienes pacientes que coincidan con la búsqueda.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
           )}
         </div>
       </main>

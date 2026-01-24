@@ -1,130 +1,78 @@
-import React, { useMemo, useState } from "react";
+// src/components/modals/NewAppointmentModal.jsx
+import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 
-/**
- * Modal para crear cita:
- * props:
- * - isOpen, onClose
- * - onSave(appointmentData)
- * - selectedDate, selectedTime
- * - patients: [{id,name,phone}]
- * - professionalId (opcional si luego quieres guardarlo)
- */
-export default function NewAppointmentModal({
-  isOpen,
-  onClose,
-  onSave,
-  selectedDate,
-  selectedTime,
-  patients = [],
-  professionalId = "self",
-}) {
-  const [mode, setMode] = useState("existing"); // 'existing' | 'new'
-  const [patientId, setPatientId] = useState("");
-  const [newPatient, setNewPatient] = useState({ name: "", phone: "" });
-  const [date, setDate] = useState(selectedDate || "");
-  const [time, setTime] = useState(selectedTime || "");
-  const [reason, setReason] = useState("");
-
-  const canSave = useMemo(() => {
-    if (!date || !time || !reason.trim()) return false;
-    if (mode === "existing") return Boolean(patientId);
-    return newPatient.name.trim().length > 1;
-  }, [mode, patientId, newPatient, date, time, reason]);
+export default function NewAppointmentModal({ isOpen, onClose, onSave, selectedDate, selectedTime }) {
+  const [mode, setMode] = useState("new");
+  const [formData, setFormData] = useState({
+    name: "",
+    docId: "", // Cédula
+    phone: "",
+    gender: "Femenino",
+    birthDate: "",
+    reason: "Primera vez", // Punto 8: Motivo
+    date: selectedDate || "",
+    time: selectedTime || ""
+  });
 
   const handleSave = () => {
-    const payload = {
-      patientId: mode === "existing" ? patientId : `p-${Date.now()}`,
-      patientName:
-        mode === "existing"
-          ? (patients.find((p) => p.id === patientId)?.name || "Paciente")
-          : newPatient.name,
-      patientPhone:
-        mode === "existing"
-          ? (patients.find((p) => p.id === patientId)?.phone || "")
-          : newPatient.phone,
-      professionalId,
-      date,
-      time,
-      duration: 30,
-      reason,
-      status: "confirmed",
+    const newPatient = {
+      id: `p-${Date.now()}`,
+      ...formData,
+      age: calculateAge(formData.birthDate), // Helper simple
+      lastVisit: new Date().toISOString().split('T')[0],
+      status: "active"
     };
-    onSave?.(payload);
-    onClose?.();
+
+    // PERSISTENCIA SIMULADA: Guardamos en localStorage para el Directorio
+    const currentPatients = JSON.parse(localStorage.getItem("MOCK_PATIENTS") || "[]");
+    localStorage.setItem("MOCK_PATIENTS", JSON.stringify([...currentPatients, newPatient]));
+
+    onSave?.(newPatient);
+    onClose();
+  };
+
+  const calculateAge = (date) => {
+    if (!date) return 0;
+    return new Date().getFullYear() - new Date(date).getFullYear();
   };
 
   return (
-    <Modal open={isOpen} onClose={onClose} title="Nueva Cita">
-      <div className="space-y-4">
-        {/* paciente */}
-        <div className="flex items-center gap-3">
-          <button
-            className={`text-xs px-2 py-1 rounded ${mode === "existing" ? "bg-primary/10" : "bg-muted"}`}
-            onClick={() => setMode("existing")}
-          >
-            Paciente registrado
-          </button>
-          <button
-            className={`text-xs px-2 py-1 rounded ${mode === "new" ? "bg-primary/10" : "bg-muted"}`}
-            onClick={() => setMode("new")}
-          >
-            Nuevo paciente
-          </button>
+    <Modal open={isOpen} onClose={onClose} title="Registrar Cita y Paciente">
+      <div className="space-y-4 font-sans"> {/* Forzamos consistencia de fuente */}
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Nombre Completo" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+          <Input label="Cédula/ID" value={formData.docId} onChange={(e) => setFormData({...formData, docId: e.target.value})} />
         </div>
-
-        {mode === "existing" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Input type="date" label="F. Nacimiento" value={formData.birthDate} onChange={(e) => setFormData({...formData, birthDate: e.target.value})} />
           <div>
-            <label className="text-sm font-medium">Paciente *</label>
-            <select
-              className="w-full mt-1 px-3 py-2 border border-border rounded-md"
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-            >
-              <option value="">Seleccionar paciente</option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.phone}
-                </option>
-              ))}
+            <label className="text-xs font-bold mb-1 block uppercase">Género</label>
+            <select className="w-full h-10 border rounded-md px-2" value={formData.gender} onChange={(e) => setFormData({...formData, gender: e.target.value})}>
+              <option>Femenino</option>
+              <option>Masculino</option>
+              <option>Otro</option>
             </select>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Nombre *</label>
-              <Input value={newPatient.name} onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })} placeholder="Ej. Ana Pérez" />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Teléfono</label>
-              <Input value={newPatient.phone} onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })} placeholder="+58 xxx-xxxxxxx" />
-            </div>
-          </div>
-        )}
-
-        {/* fecha/hora */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium">Fecha *</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Hora *</label>
-            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
         </div>
-
-        {/* motivo */}
+        <div className="grid grid-cols-2 gap-3">
+          <Input type="date" label="Fecha Cita" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} />
+          <Input type="time" label="Hora" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} />
+        </div>
         <div>
-          <label className="text-sm font-medium">Motivo de consulta *</label>
-          <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ej. Control post-operatorio" />
+          <label className="text-xs font-bold mb-1 block uppercase">Motivo de Consulta</label>
+          <select className="w-full h-10 border rounded-md px-2" value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})}>
+            <option>Primera vez</option>
+            <option>Seguimiento</option>
+            <option>Pre-operatorio</option>
+            <option>Post-operatorio</option>
+          </select>
         </div>
-
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2 mt-4">
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="default" disabled={!canSave} onClick={handleSave}>Guardar</Button>
+          <Button onClick={handleSave}>Confirmar Cita</Button>
         </div>
       </div>
     </Modal>

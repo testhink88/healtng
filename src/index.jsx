@@ -1,8 +1,12 @@
-﻿import React from "react";
+﻿// src/index.jsx
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 
-// ✅ Estilos globales
+// Importar el proveedor de contexto
+import { PracticeProvider } from "@/context/PracticeContext";
+
+// Estilos globales
 import "@/styles/tailwind.css";
 import "@/styles/index.css";
 
@@ -16,8 +20,11 @@ setAppHeightVar();
 const container = document.getElementById("root");
 const root = createRoot(container);
 
+// Aquí envolvemos la aplicación con el contexto
 root.render(
   <React.StrictMode>
-    <App />
+    <PracticeProvider>
+      <App />
+    </PracticeProvider>
   </React.StrictMode>
 );

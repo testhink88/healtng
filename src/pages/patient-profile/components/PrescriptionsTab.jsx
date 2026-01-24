@@ -1,181 +1,143 @@
 import React from 'react';
 import Icon from '@/components/AppIcon';
-import Button from '@/components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 
-const PrescriptionsTab = ({ prescriptions = [] }) => {
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No disponible';
-    const date = new Date(dateString);
-    return date?.toLocaleDateString('es-VE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+const PrescriptionsTab = ({ patient, onOpenConsultation }) => {
+  const navigate = useNavigate();
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'emitida':
-        return 'bg-primary/10 text-primary border-primary/20';
-      case 'dispensada':
-        return 'bg-success/10 text-success border-success/20';
-      case 'vencida':
-        return 'bg-error/10 text-error border-error/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
+  // 1. FUENTE A: Recetas Directas (Array 'medications' en el root del paciente)
+  const directPrescriptions = (patient?.medications || []).map(rx => ({
+    ...rx,
+    source: 'direct',
+    date: rx.prescribedDate || new Date().toISOString(), // Asegurar fecha
+    doctorName: "Dr. Tratante", // O el nombre del usuario actual
+    // Normalización de campos (algunos formularios usan 'name', otros 'med')
+    unifiedName: rx.name || rx.med,
+    unifiedDose: rx.dose || rx.dosage,
+    unifiedFreq: rx.freq || rx.frequency
+  }));
 
-  const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'emitida': return 'Clock';
-      case 'dispensada': return 'CheckCircle';
-      case 'vencida': return 'XCircle';
-      default: return 'Pill';
-    }
-  };
+  // 2. FUENTE B: Recetas de Evoluciones (Dentro de 'diagnoses')
+  const evolutionPrescriptions = (patient?.diagnoses || [])
+    .filter(d => d.data?.prescriptions && d.data.prescriptions.length > 0)
+    .flatMap(d => d.data.prescriptions.map(rx => ({
+      ...rx,
+      source: 'evolution',
+      diagnosisId: d.id, // Para el botón "Ver Origen"
+      doctorName: d.doctorName,
+      date: d.date,
+      // Normalización
+      unifiedName: rx.med || rx.name,
+      unifiedDose: rx.dose || rx.dosage,
+      unifiedFreq: rx.freq || rx.frequency
+    })));
+
+  // 3. FUSIÓN Y ORDENAMIENTO (Más recientes primero)
+  const allPrescriptions = [...directPrescriptions, ...evolutionPrescriptions].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
+  // --- RENDERIZADO ---
+
+  if (allPrescriptions.length === 0) {
+    return (
+      <div className="py-20 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+        <div className="h-16 w-16 bg-gray-100 text-gray-400 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <Icon name="Pill" size={32} />
+        </div>
+        <p className="text-gray-500 text-sm font-medium">No hay recetas activas</p>
+        <p className="text-xs text-gray-400 mt-1 mb-6">El historial farmacológico está vacío.</p>
+        <button 
+          onClick={() => navigate(`/patients/${patient?.id}/prescriptions/new`)}
+          className="text-[#0E39B1] text-xs font-bold uppercase tracking-widest hover:underline"
+        >
+          + Crear Primera Receta
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground flex items-center">
-          <Icon name="Pill" size={20} className="mr-2" />
-          Recetas Médicas ({prescriptions?.length || 0})
+        <h3 className="text-[11px] font-normal text-gray-400 uppercase tracking-widest">
+          Historial Farmacológico ({allPrescriptions.length})
         </h3>
-        <Button 
-          size="sm"
-          onClick={() => {
-            const patientId = new URLSearchParams(window.location.search)?.get('patientId') || 
-                            window.location?.pathname?.split('/')?.pop();
-            window.location.href = `/prescriptions/new?patientId=${patientId}`;
-          }}
+        <button 
+          onClick={() => navigate(`/patients/${patient?.id}/prescriptions/new`)}
+          className="text-[#0E39B1] text-xs font-medium hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
         >
-          <Icon name="Plus" size={16} className="mr-2" />
-          Nueva Receta
-        </Button>
+          + Nueva Receta
+        </button>
       </div>
-      {prescriptions?.length > 0 ? (
-        <div className="space-y-6">
-          {prescriptions?.map((prescription) => (
-            <div key={prescription?.id} className="bg-muted/50 rounded-lg border border-border overflow-hidden">
-              {/* Prescription Header */}
-              <div className="p-4 bg-background border-b border-border">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Icon name="Pill" size={20} className="text-primary" />
-                      <h4 className="font-medium text-foreground">
-                        Receta #{prescription?.id?.toUpperCase()}
-                      </h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(prescription?.status)}`}>
-                        <Icon name={getStatusIcon(prescription?.status)} size={12} className="mr-1" />
-                        {prescription?.status}
+      
+      <div className="grid grid-cols-1 gap-3">
+        {allPrescriptions.map((med, idx) => {
+          const isDirect = med.source === 'direct';
+          
+          return (
+            <div 
+              key={`${med.source}-${idx}`} 
+              className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-white border border-gray-200 rounded-xl hover:border-[#0E39B1] hover:shadow-sm transition-all gap-4"
+            >
+              <div className="flex items-start gap-5">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isDirect ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-[#0E39B1] border-blue-100'}`}>
+                  <Icon name="Pill" size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-normal text-gray-900 text-lg leading-tight">
+                      {med.unifiedName}
+                    </p>
+                    {isDirect && (
+                      <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase tracking-wide font-medium">
+                        Directa
                       </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                      <div>
-                        <span className="font-medium">Fecha de emisión:</span>
-                        <br />
-                        {formatDate(prescription?.issueDate)}
-                      </div>
-                      <div>
-                        <span className="font-medium">Válida hasta:</span>
-                        <br />
-                        {formatDate(prescription?.validUntil)}
-                      </div>
-                      <div>
-                        <span className="font-medium">Farmacia:</span>
-                        <br />
-                        {prescription?.pharmacy || 'No especificada'}
-                      </div>
-                      <div>
-                        <span className="font-medium">Firmada por:</span>
-                        <br />
-                        {prescription?.signedBy}
-                      </div>
-                    </div>
+                    )}
                   </div>
                   
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-4"
-                  >
-                    <Icon name="Download" size={16} className="mr-2" />
-                    Descargar
-                  </Button>
+                  <p className="text-sm text-gray-500 font-normal mt-1">
+                    {med.unifiedDose} • {med.unifiedFreq}
+                  </p>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-[10px] text-gray-400 font-normal uppercase tracking-tight">
+                      {new Date(med.date).toLocaleDateString()}
+                    </p>
+                    {med.duration && (
+                      <>
+                        <span className="text-[10px] text-gray-300">•</span>
+                        <p className="text-[10px] text-gray-400 font-normal">
+                          Por {med.duration}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Medications List */}
-              <div className="p-4">
-                <h5 className="font-medium text-foreground mb-3 flex items-center">
-                  <Icon name="List" size={16} className="mr-2" />
-                  Medicamentos ({prescription?.meds?.length})
-                </h5>
-                
-                <div className="space-y-3">
-                  {prescription?.meds?.map((med, index) => (
-                    <div key={index} className="bg-background rounded-md p-4 border border-border">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Medicamento</p>
-                          <p className="font-medium text-foreground">{med?.drug}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Dosis</p>
-                          <p className="text-foreground">{med?.dose}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Frecuencia</p>
-                          <p className="text-foreground">{med?.freq}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Duración</p>
-                          <p className="text-foreground">{med?.duration}</p>
-                        </div>
-                      </div>
-                      
-                      {med?.instructions && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <p className="text-sm font-medium text-muted-foreground mb-1">Instrucciones:</p>
-                          <p className="text-sm text-foreground">{med?.instructions}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Digital Signature */}
-                <div className="mt-4 pt-4 border-t border-border flex items-center text-xs text-muted-foreground">
-                  <Icon name="Shield" size={14} className="mr-2" />
-                  Firmado digitalmente por {prescription?.signedBy} el {formatDate(prescription?.issueDate)}
-                </div>
-              </div>
+              {/* Botón de Acción: Solo si viene de una evolución (Trazabilidad) */}
+              {!isDirect && med.diagnosisId && (
+                <button 
+                  onClick={() => onOpenConsultation(med.diagnosisId)}
+                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-normal text-[#0E39B1] bg-blue-50/50 hover:bg-[#0E39B1] hover:text-white rounded-lg border border-blue-100 transition-all whitespace-nowrap"
+                >
+                  <Icon name="FileText" size={14} />
+                  VER CONSULTA
+                </button>
+              )}
+              
+              {/* Si es directa, podríamos mostrar opciones de reimprimir */}
+              {isDirect && (
+                <button className="flex items-center gap-2 px-4 py-2 text-[10px] font-normal text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all whitespace-nowrap">
+                  <Icon name="Printer" size={14} />
+                  REIMPRIMIR
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Icon name="Pill" size={48} className="mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h4 className="text-lg font-medium text-foreground mb-2">No hay recetas registradas</h4>
-          <p className="text-muted-foreground mb-4">
-            Este paciente aún no tiene recetas médicas emitidas.
-          </p>
-          <Button 
-            onClick={() => {
-              const patientId = new URLSearchParams(window.location.search)?.get('patientId') || 
-                              window.location?.pathname?.split('/')?.pop();
-              window.location.href = `/prescriptions/new?patientId=${patientId}`;
-            }}
-          >
-            <Icon name="Plus" size={16} className="mr-2" />
-            Crear Primera Receta
-          </Button>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 };

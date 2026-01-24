@@ -1,901 +1,716 @@
 /**
- * INTERNAL_COMMON_OPTIONS:
- * Opciones de selección compartidas por múltiples especialidades.
- * Esto evita la necesidad de un archivo `commonOptions.js` separado para que este archivo sea autoejecutable.
+ * src/config/diagnosisSchemas.js
+ * CEREBRO CLÍNICO UNIFICADO - HEALTNG
+ * Contiene: Opciones Comunes, Secciones Base y Esquemas por Especialidad.
  */
+
+// ==========================================
+// 1. OPCIONES CLÍNICAS ESTANDARIZADAS (CONSTANTES)
+// ==========================================
 export const INTERNAL_COMMON_OPTIONS = {
   triageLevels: [
-    { value: 'T1', label: 'T1 - Reanimación (Riesgo Vital)' },
-    { value: 'T2', label: 'T2 - Emergencia (Riesgo Inminente)' },
-    { value: 'T3', label: 'T3 - Urgencia (Potencial Riesgo)' },
-    { value: 'T4', label: 'T4 - Menor (Poco Riesgo)' },
-    { value: 'T5', label: 'T5 - Sin urgencia (Consulta Programada)' },
-  ],
-  anesthesiaTypes: [
-    { value: 'GENERAL', label: 'General' },
-    { value: 'REGIONAL', label: 'Regional (Espinal/Epidural)' },
-    { value: 'LOCAL', label: 'Local' },
-    { value: 'SEDATION', label: 'Sedación Consciente' },
-  ],
-  marginStatus: [
-    { value: 'R0', label: 'R0 (Márgenes Negativos - Libre)' },
-    { value: 'R1', label: 'R1 (Márgenes Microscópicamente Positivos)' },
-    { value: 'R2', label: 'R2 (Márgenes Macroscópicamente Positivos)' },
-    { value: 'UNKNOWN', label: 'No Evaluado/Desconocido' },
-  ],
-  bariatricProcedures: [
-    { value: 'BYPASS', label: 'Bypass Gástrico' },
-    { value: 'SLEEVE', label: 'Manga Gástrica' },
-    { value: 'BALLOON', label: 'Balón Intragástrico' },
-    { value: 'OTHER', label: 'Otro' },
+    { value: "T1", label: "T1 - Reanimación (Riesgo Vital Inmediato)" },
+    { value: "T2", label: "T2 - Emergencia (Riesgo Vital Inminente - <10min)" },
+    { value: "T3", label: "T3 - Urgencia (Potencial Riesgo - <30min)" },
+    { value: "T4", label: "T4 - Menor (Poco Riesgo - <60min)" },
+    { value: "T5", label: "T5 - No Urgente (Consulta General)" },
   ],
   nyhaClasses: [
-    { value: 'I', label: 'Clase I (Sin limitación)' },
-    { value: 'II', label: 'Clase II (Limitación leve)' },
-    { value: 'III', label: 'Clase III (Limitación marcada)' },
-    { value: 'IV', label: 'Clase IV (Incapacidad en reposo)' },
+    { value: "I", label: "NYHA I - Sin limitación física" },
+    { value: "II", label: "NYHA II - Limitación leve (Disnea grandes esfuerzos)" },
+    { value: "III", label: "NYHA III - Limitación marcada (Disnea mínimos esfuerzos)" },
+    { value: "IV", label: "NYHA IV - Incapacidad / Disnea en reposo" },
   ],
-  siiTypes: [
-    { value: 'C', label: 'SII con Estreñimiento predominante (SII-C)' },
-    { value: 'D', label: 'SII con Diarrea predominante (SII-D)' },
-    { value: 'M', label: 'SII Mixto (SII-M)' },
-    { value: 'U', label: 'SII No Clasificado (SII-U)' },
+  glasgowComa: [
+    { value: "15", label: "15 - Consciente y Orientado" },
+    { value: "13-14", label: "13-14 - Confusión Leve" },
+    { value: "9-12", label: "9-12 - Moderado" },
+    { value: "3-8", label: "3-8 - Grave (Coma)" },
   ],
-  childPughClasses: [
-    { value: 'A', label: 'Clase A (Función Hepática Bien Compensada)' },
-    { value: 'B', label: 'Clase B (Compromiso Funcional Moderado)' },
-    { value: 'C', label: 'Clase C (Compromiso Funcional Grave)' },
+  muscleStrength: [
+    { value: "5", label: "5/5 - Fuerza Normal" },
+    { value: "4", label: "4/5 - Movimiento contra resistencia parcial" },
+    { value: "3", label: "3/5 - Movimiento contra gravedad" },
+    { value: "2", label: "2/5 - Movimiento sin gravedad" },
+    { value: "1", label: "1/5 - Contracción visible sin movimiento" },
+    { value: "0", label: "0/5 - Parálisis total" },
+  ],
+  bristolScale: [
+    { value: "1", label: "Tipo 1 - Trozos duros separados" },
+    { value: "2", label: "Tipo 2 - Forma de salchicha grumosa" },
+    { value: "3", label: "Tipo 3 - Salchicha con grietas" },
+    { value: "4", label: "Tipo 4 - Salchicha lisa y suave (Normal)" },
+    { value: "5", label: "Tipo 5 - Trozos blandos bordes definidos" },
+    { value: "6", label: "Tipo 6 - Pedazos blandos bordes deshechos" },
+    { value: "7", label: "Tipo 7 - Acuosa, sin sólidos" },
+  ],
+  dyspneaScaleMMRC: [
+    { value: "0", label: "Grado 0 - Solo al ejercicio intenso" },
+    { value: "1", label: "Grado 1 - Al andar rápido o subir pendiente" },
+    { value: "2", label: "Grado 2 - Incapacidad de mantener paso de otros" },
+    { value: "3", label: "Grado 3 - Parar a descansar cada 100m" },
+    { value: "4", label: "Grado 4 - Al vestirse o desvestirse" },
+  ],
+  fitzpatrickSkin: [
+    { value: "I", label: "Tipo I - Siempre se quema, nunca se broncea" },
+    { value: "II", label: "Tipo II - Generalmente se quema" },
+    { value: "III", label: "Tipo III - A veces se quema" },
+    { value: "IV", label: "Tipo IV - Rara vez se quema" },
+    { value: "V", label: "Tipo V - Piel oscura moderada" },
+    { value: "VI", label: "Tipo VI - Piel negra, nunca se quema" },
   ],
   tannerStages: [
-    { value: 'I', label: 'Estadio I (Preadolescente)' },
-    { value: 'II', label: 'Estadio II (Inicio del Desarrollo)' },
-    { value: 'III', label: 'Estadio III (Progresión)' },
-    { value: 'IV', label: 'Estadio IV (Casi Adulto)' },
-    { value: 'V', label: 'Estadio V (Madurez Adulta)' },
+    { value: "I", label: "Estadio I (Prepuberal)" },
+    { value: "II", label: "Estadio II (Botón mamario / Aumento testicular)" },
+    { value: "III", label: "Estadio III (Crecimiento vello oscuro)" },
+    { value: "IV", label: "Estadio IV (Tipo adulto menor cantidad)" },
+    { value: "V", label: "Estadio V (Adulto maduro)" },
   ],
-  suicideRisk: [
-    { value: 'BAJO', label: 'Bajo' },
-    { value: 'MODERADO', label: 'Moderado' },
-    { value: 'ALTO', label: 'Alto' },
-    { value: 'INMINENTE', label: 'Inminente/Activo' },
+  painScale: [
+    { value: "0", label: "0 - Sin dolor" },
+    { value: "2", label: "2 - Leve" },
+    { value: "4", label: "4 - Moderado" },
+    { value: "6", label: "6 - Severo" },
+    { value: "8", label: "8 - Muy Severo" },
+    { value: "10", label: "10 - Insoportable" },
   ],
-  malocclusionClass: [
-    { value: 'CLASS_I', label: 'Clase I' },
-    { value: 'CLASS_II', label: 'Clase II' },
-    { value: 'CLASS_III', label: 'Clase III' },
-  ]
+  contraceptiveMethods: [
+    { value: "NONE", label: "Ninguno" },
+    { value: "ORAL", label: "Anticonceptivos Orales" },
+    { value: "IUD", label: "DIU (Cobre/Hormonal)" },
+    { value: "IMPLANT", label: "Implante Subdérmico" },
+    { value: "CONDOM", label: "Preservativo" },
+    { value: "SURGICAL", label: "Quirúrgico (Ligadura/Vasectomía)" },
+  ],
+  childPughClasses: [
+    { value: "A", label: "Clase A (Función Hepática Bien Compensada)" },
+    { value: "B", label: "Clase B (Compromiso Funcional Moderado)" },
+    { value: "C", label: "Clase C (Compromiso Funcional Grave)" },
+  ],
+  anesthesiaTypes: [
+    { value: "GENERAL", label: "General" },
+    { value: "REGIONAL", label: "Regional (Espinal/Epidural)" },
+    { value: "LOCAL", label: "Local" },
+    { value: "SEDATION", label: "Sedación Consciente" },
+  ],
+
+  // =========================================================
+  // Opciones TNM (Obligatorio)
+  // =========================================================
+  tnmStaging: {
+    t: ["X", "0", "is", "1", "2", "3", "4"],
+    n: ["X", "0", "1", "2", "3"],
+    m: ["X", "0", "1"],
+  },
+
+  // ECOG (Oncología Médica)
+  ecogStatus: [
+    { value: "0", label: "ECOG 0 - Asintomático / totalmente activo" },
+    { value: "1", label: "ECOG 1 - Limitación leve, deambula" },
+    { value: "2", label: "ECOG 2 - Ambulatorio >50% del día, no trabaja" },
+    { value: "3", label: "ECOG 3 - En cama/silla >50% del día" },
+    { value: "4", label: "ECOG 4 - Postrado" },
+  ],
 };
 
-/**
- * BASE_DIAGNOSIS_SECTIONS:
- * Define las secciones obligatorias del proceso diagnóstico (Flujo de 4 pasos).
- * Todas las especialidades heredarán estas secciones.
- */
+// ==========================================
+// 2. SECCIONES BASE (OBLIGATORIAS PARA TODOS)
+// ==========================================
 export const BASE_DIAGNOSIS_SECTIONS = [
   {
-    key: 'anamnesis',
-    label: '1. Anamnesis y Motivo de Consulta',
+    key: "anamnesis",
+    label: "1. Anamnesis y Motivo",
     fields: [
-      { key: 'chief_complaint', label: 'Motivo de Consulta y Tiempo de Evolución', type: 'textarea' },
-      { key: 'history_disease', label: 'Historial de Enfermedad Actual (Detalle de Síntomas)', type: 'textarea' },
-      { key: 'medical_history', label: 'Antecedentes Patológicos, Quirúrgicos y Familiares', type: 'textarea' },
-      { key: 'medication_current', label: 'Medicamentos y Alergias Actuales', type: 'textarea' },
+      { key: "chief_complaint", label: "Motivo de Consulta", type: "text", required: true },
+      { key: "history_disease", label: "Enfermedad Actual", type: "textarea", rows: 3 },
+
+      // Antecedentes toggles (Obligatorio)
+      {
+        key: "surgical_history",
+        label: "¿Antecedentes Quirúrgicos?",
+        type: "antecedente_toggle",
+        fullWidth: true,
+      },
+      {
+        key: "medical_history",
+        label: "¿Antecedentes Médicos / Patológicos?",
+        type: "antecedente_toggle",
+        fullWidth: true,
+      },
+    ],
+  },
+  {
+    key: "exam_vitals",
+    label: "2. Signos Vitales y Físico General",
+    fields: [
+      { key: "bp_systolic", label: "T.A. Sistólica", type: "number", unit: "mmHg", gridSpan: 1 },
+      { key: "bp_diastolic", label: "T.A. Diastólica", type: "number", unit: "mmHg", gridSpan: 1 },
+      { key: "heart_rate", label: "Frecuencia Cardíaca", type: "number", unit: "lpm", gridSpan: 1 },
+      { key: "temp", label: "Temperatura", type: "number", unit: "°C", gridSpan: 1 },
+      { key: "spo2", label: "Saturación O₂", type: "number", unit: "%", gridSpan: 1 },
+      { key: "weight", label: "Peso", type: "number", unit: "kg", gridSpan: 1 },
+      { key: "general_exam", label: "Examen Físico General", type: "textarea", placeholder: "Piel, mucosas, hidratación..." },
     ],
   },
 
-  {
-    key: 'exam_vitals',
-    label: '2. Examen Físico y Signos Vitales',
-    fields: [
-      { key: 'vital_signs_ta', label: 'Tensión Arterial (TA)', type: 'text' },
-      { key: 'vital_signs_fc', label: 'Frecuencia Cardíaca (FC)', type: 'number' },
-      { key: 'vital_signs_temp', label: 'Temperatura (°C)', type: 'number' },
-      { key: 'vital_signs_spo2', label: 'Saturación O₂ (So2) (%)', type: 'number' },
-      { key: 'physical_exam_notes', label: 'Hallazgos Clave de la Exploración Física (Por sistemas)', type: 'textarea' },
-    ],
-  },
-
-  // La sección 3 se reserva para la especialidad específica (ver combineSchemas)
+  // Secciones específicas se insertan antes de diagnosis_plan
 
   {
-    key: 'evaluation_diagnosis',
-    label: '4. Evaluación, Diagnóstico Final y Resultados',
+    key: "diagnosis_plan",
+    label: "4. Diagnóstico y Plan",
     fields: [
-      { key: 'differential_diagnosis', label: 'Diagnóstico Diferencial (Listado de Hipótesis)', type: 'textarea' },
-      { key: 'tests_results', label: 'Resultados e Interpretación de Pruebas Complementarias', type: 'textarea' },
-      { key: 'final_diagnosis', label: 'Conclusión Diagnóstica Final', type: 'textarea' },
-      { key: 'icd10_codes', label: 'Códigos CIE-10 / ICD-10 (Separados por coma)', type: 'text' },
-    ],
-  },
-
-  {
-    key: 'action_plan',
-    label: '5. Plan de Acción y Comunicación',
-    fields: [
-      { key: 'prognosis_followup', label: 'Pronóstico y Conducta a Seguir / Seguimiento', type: 'textarea' },
-      { key: 'treatment_plan', label: 'Plan de Tratamiento (Farmacológico, Terapéutico, Quirúrgico)', type: 'textarea' },
-      { key: 'communication', label: 'Comunicación con el Paciente y Consentimiento', type: 'textarea' },
+      { key: "main_diagnosis_cie10", label: "Diagnóstico CIE-10", type: "cie10_search", required: true },
+      { key: "analysis", label: "Análisis Médico", type: "textarea" },
+      { key: "plan", label: "Plan Terapéutico", type: "textarea", rows: 3 },
     ],
   },
 ];
 
-/**
- * Función de utilidad para combinar las secciones base con las específicas de la especialidad.
- * La sección específica siempre se inserta después de la '2. Examen Físico' y antes de '4. Evaluación'.
- */
+// Inserta secciones específicas antes de diagnosis_plan
 const combineSchemas = (name, specificSections = []) => {
-  // Asegurarse de que las secciones específicas tengan la llave '3' si solo se proporciona una.
-  const specificSectionWithNumber = specificSections.map(section => {
-    if (section.label.startsWith("3.") || specificSections.length > 1) {
-      return section;
-    }
-    return { ...section, label: `3. ${section.label.replace(/^(\d+\.\s*)?/, '')}` };
-  });
-
-  // Encuentra el índice después de la sección 'exam_vitals' (2.)
-  const indexAfterExamVitals = BASE_DIAGNOSIS_SECTIONS.findIndex(s => s.key === 'exam_vitals') + 1;
-
-  // Crea una copia de las secciones base y splice las específicas en el lugar correcto
   const finalSections = [...BASE_DIAGNOSIS_SECTIONS];
-  finalSections.splice(indexAfterExamVitals, 0, ...specificSectionWithNumber);
-
-  return {
-    name: name,
-    sections: finalSections
-  };
+  finalSections.splice(2, 0, ...specificSections);
+  return { name, sections: finalSections };
 };
 
-/**
- * SPECIALTY_DIAGNOSIS_SCHEMAS:
- * Contiene el esquema completo de secciones y campos para cada especialidad.
- */
+// ==========================================
+// 3. PLANTILLAS GENÉRICAS (FALLBACKS)
+// ==========================================
+const STANDARD_CLINICAL = (name) =>
+  combineSchemas(name, [
+    {
+      key: "std_clinical",
+      label: `3. Evaluación Específica de ${name}`,
+      fields: [{ key: "specific_findings", label: "Hallazgos Clínicos Relevantes", type: "textarea", rows: 4 }],
+    },
+  ]);
+
+// Se mantiene para cirugías de baja prioridad tumoral (NO se usa en las especialidades que actualizamos abajo)
+const STANDARD_SURGICAL = (name) =>
+  combineSchemas(name, [
+    {
+      key: "std_surgical",
+      label: `3. Evaluación Quirúrgica - ${name}`,
+      fields: [
+        { key: "surgical_indication", label: "Indicación Quirúrgica", type: "checkbox", description: "Paciente candidato a cirugía" },
+        { key: "local_exam", label: "Examen Local / Zona Afectada", type: "textarea", rows: 3 },
+      ],
+    },
+  ]);
+
+// ==========================================
+// 3.1 HELPERS ONCO (TNM)
+// ==========================================
+const TNM_SECTION = (label = "Clasificación Tumoral (TNM)") => ({
+  key: "tnm_staging",
+  label,
+  fields: [
+    {
+      key: "tnm",
+      label: "TNM (T / N / M)",
+      type: "tnm_staging",
+      options: INTERNAL_COMMON_OPTIONS.tnmStaging,
+      helperText: "Selecciona T, N y M según el estadio clínico. (X = no evaluable)",
+      fullWidth: true, // IMPORTANTE: debe ocupar toda la fila
+    },
+  ],
+});
+
+// ==========================================
+// 4. MAPEO MAESTRO (SQL -> SCHEMA)
+// ==========================================
 export const SPECIALTY_DIAGNOSIS_SCHEMAS = {
-  GEN: combineSchemas("Medicina General / Médico Integral", []),
-
-  // 1. Medicina Interna y Subespecialidades
-  INT: combineSchemas("Medicina Interna", [
-    {
-      key: "int_specifics",
-      label: "3. Evaluación de Comorbilidades",
-      fields: [
-        { key: "comorbidities", label: "Comorbilidades Crónicas (Detalle)", type: 'textarea' },
-        { key: "medication_list", label: "Detalle de Fármacos, Dosis y Frecuencia", type: 'textarea' },
-      ]
-    },
-  ]),
-
-  FAM: combineSchemas("Medicina Familiar y Comunitaria", [
-    {
-      key: "fam_specifics",
-      label: "3. Historial Familiar y Social",
-      fields: [
-        { key: "familyDiseases", label: "Enfermedades Hereditarias/Familiares", type: 'textarea' },
-        { key: "socialDeterminants", label: "Determinantes Sociales (Hacinamiento, Servicios, Red de apoyo)", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  PREV: combineSchemas("Medicina Preventiva y Salud Pública", [
-    {
-      key: "prev_specifics",
-      label: "3. Estrategia Preventiva y Promoción de Salud",
-      fields: [
-        { key: "screening", label: "Exámenes de Detección (Cáncer, ETS) Planificados", type: 'textarea' },
-        { key: "healthEducation", label: "Consejería de Estilos de Vida/Riesgo", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  EME: combineSchemas("Urgencias / Emergenciología", [
-    {
-      key: "eme_specifics",
-      label: "3. Datos de Emergencia y Triaje",
-      fields: [
-        { key: "trauma", label: "Mecanismo/Tipo de Lesión o Patología Aguda", type: 'text' },
-        { key: "severity", label: "Nivel de Triaje (Severidad)", type: 'select', options: INTERNAL_COMMON_OPTIONS.triageLevels },
-        { key: "glasgow", label: "Escala de Glasgow", type: 'number' }
-      ]
-    },
-  ]),
-
-  GERI: combineSchemas("Geriatría", [
-    {
-      key: "geri_specifics",
-      label: "3. Evaluación Geriátrica Integral",
-      fields: [
-        { key: "cognitiveStatus", label: "Estado Cognitivo (MMSE, MoCA, etc.)", type: 'text' },
-        { key: "mobilityStatus", label: "Estado de Movilidad (Barthel, Tinetti)", type: 'text' },
-        { key: "polypharmacy", label: "Polifarmacia", type: 'checkbox' }
-      ]
-    },
-  ]),
-
-  PALI: combineSchemas("Cuidados Paliativos", [
-    {
-      key: "pali_specifics",
-      label: "3. Manejo Paliativo de Síntomas",
-      fields: [
-        { key: "painLevel", label: "Nivel de Dolor (EVA 0-10)", type: 'number' },
-        { key: "symptomManagement", label: "Manejo de Síntomas (Náuseas, Disnea, etc.)", type: 'textarea' },
-        { key: "emotionalSupport", label: "Soporte Emocional y Familiar", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  // 2. Especialidades Quirúrgicas
-  SURG: combineSchemas("Cirugía General", [
-    {
-      key: "surg_specifics",
-      label: "3. Evaluación Pre/Post-Quirúrgica",
-      fields: [
-        { key: "surgeryType", label: "Procedimiento Propuesto/Realizado", type: 'text' },
-        { key: "surgeryDate", label: "Fecha de Cirugía", type: 'date' },
-        { key: "anesthesiaType", label: "Tipo de Anestesia", type: 'select', options: INTERNAL_COMMON_OPTIONS.anesthesiaTypes }
-      ]
-    },
-  ]),
-
-  ORTO: combineSchemas("Traumatología y Ortopedia", [
-    {
-      key: "orto_specifics",
-      label: "3. Lesiones Osteomusculares",
-      fields: [
-        { key: "fractureType", label: "Tipo de Lesión/Fractura (Clasificación)", type: 'text' },
-        { key: "location", label: "Ubicación (Hueso, Articulación)", type: 'text' },
-        { key: "mechanism", label: "Mecanismo de Lesión", type: 'text' }
-      ]
-    },
-  ]),
-
-  CAR: combineSchemas("Cirugía Cardiovascular", [
-    {
-      key: "car_specifics",
-      label: "3. Evaluación Cardíaca Quirúrgica",
-      fields: [
-        { key: "surgeryDetails", label: "Detalles del Procedimiento (Bypass, Válvula, Aorta)", type: 'textarea' },
-        { key: "ef", label: "Fracción de Eyección (FE) (%)", type: 'number' }
-      ]
-    },
-  ]),
-
-  PEDSUR: combineSchemas("Cirugía Pediátrica", [
-    {
-      key: "pedsur_specifics",
-      label: "3. Parámetros Quirúrgicos Pediátricos",
-      fields: [
-        { key: "weight", label: "Peso (kg)", type: 'number' },
-        { key: "congenitalDefect", label: "Defecto Congénito a Corregir", type: 'text' }
-      ]
-    },
-  ]),
-
-  ONCO_SURG: combineSchemas("Cirugía Oncológica", [
-    {
-      key: "oncosurg_specifics",
-      label: "3. Evaluación Oncológica Quirúrgica",
-      fields: [
-        { key: "tumorLocation", label: "Localización del Tumor (TNM)", type: 'text' },
-        { key: "marginStatus", label: "Estado de Márgenes Quirúrgicos (Post-Op)", type: 'select', options: INTERNAL_COMMON_OPTIONS.marginStatus }
-      ]
-    },
-  ]),
-
-  PLAS: combineSchemas("Cirugía Plástica y Reconstructiva", [
-    {
-      key: "plas_specifics",
-      label: "3. Procedimiento Plástico/Estético",
-      fields: [
-        { key: "reason", label: "Motivo (Estético/Reconstructivo)", type: 'text' },
-        { key: "graftType", label: "Tipo de Injerto/Colgajo/Expansor", type: 'text' }
-      ]
-    },
-  ]),
-
-  BARI: combineSchemas("Cirugía Bariátrica", [
-    {
-      key: "bari_specifics",
-      label: "3. Evaluación Bariátrica",
-      fields: [
-        { key: "bmi", label: "IMC Pre-Quirúrgico", type: 'number' },
-        { key: "procedure", label: "Procedimiento (Bypass, Manga, etc.)", type: 'select', options: INTERNAL_COMMON_OPTIONS.bariatricProcedures }
-      ]
-    },
-  ]),
-
-  TORA: combineSchemas("Cirugía de Tórax", [
-    {
-      key: "tora_specifics",
-      label: "3. Evaluación Torácica Quirúrgica",
-      fields: [
-        { key: "pulmonaryFunction", label: "Pruebas de Función Pulmonar (FEV1) Pre-Op", type: 'text' },
-        { key: "pathology", label: "Patología Torácica (Ej. Nódulo, Derrame)", type: 'text' }
-      ]
-    },
-  ]),
-
-  COLO: combineSchemas("Coloproctología", [
-    {
-      key: "colo_specifics",
-      label: "3. Evaluación Coloproctológica",
-      fields: [
-        { key: "chiefComplaint", label: "Síntoma Principal (Sangrado, Dolor, Alteración del ritmo)", type: 'text' },
-        { key: "endoscopyResult", label: "Resultado de Colonoscopia/Rectosigmoidoscopia", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  NEURO_SURG: combineSchemas("Neurocirugía", [
-    {
-      key: "neurosurg_specifics",
-      label: "3. Parámetros Neuroquirúrgicos",
-      fields: [
-        { key: "icp", label: "Presión Intracraneal (PIC) si aplica", type: 'text' },
-        { key: "location", label: "Localización y Tipo de Lesión/Tumor", type: 'text' }
-      ]
-    },
-  ]),
-
-  MAX: combineSchemas("Cirugía Maxilofacial", [
-    {
-      key: "max_specifics",
-      label: "3. Evaluación Oral y Maxilofacial",
-      fields: [
-        { key: "dentalStatus", label: "Estado Dental y Oclusal (Clase de Angle)", type: 'text' },
-        { key: "traumaType", label: "Tipo de Trauma Facial/Fractura", type: 'text' }
-      ]
-    },
-  ]),
-
-  MANO: combineSchemas("Cirugía de Mano", [
-    {
-      key: "mano_specifics",
-      label: "3. Evaluación de la Mano",
-      fields: [
-        { key: "functionalStatus", label: "Estado Funcional (Agarre, Pinza, Test de Sensibilidad)", type: 'text' },
-        { key: "nerveDamage", label: "Lesión Tendinosa/Nerviosa Asociada", type: 'text' }
-      ]
-    },
-  ]),
-
-  URO: combineSchemas("Urología", [
-    {
-      key: "uro_specifics",
-      label: "3. Evaluación Urológica",
-      fields: [
-        { key: "symptoms", label: "Síntomas Urinarios (Disuria, Hematuria, Frecuencia)", type: 'text' },
-        { key: "psa", label: "Antígeno Prostático Específico (PSA) - Valor", type: 'text' }
-      ]
-    },
-  ]),
-
-  // 3. Ginecología y Obstetricia
-  GYN: combineSchemas("Ginecología", [
-    {
-      key: "gyn_specifics",
-      label: "3. Historial Ginecológico y Prevención",
-      fields: [
-        { key: "lmp", label: "Fecha de Última Menstruación (FUM)", type: 'date' },
-        { key: "papSmear", label: "Último Papanicolaou (Fecha y Resultado)", type: 'text' },
-        { key: "sexualHistory", label: "Historial Sexual y de ETS", type: 'text' }
-      ]
-    },
-  ]),
-
-  OB: combineSchemas("Obstetricia", [
+  // --- GRUPO 1: CLÍNICO GENERAL ---
+  "Medicina Interna": STANDARD_CLINICAL("Medicina Interna"),
+  "Medicina General": combineSchemas("Medicina General", [
     {
-      key: "ob_specifics",
-      label: "3. Control Prenatal",
-      fields: [
-        { key: "gestationalAge", label: "Edad Gestacional (Semanas)", type: 'number' },
-        { key: "g_p_a_l", label: "Fórmula Obstétrica (G P A L)", type: 'text' },
-        { key: "riskFactors", label: "Factores de Riesgo Obstétrico", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  REPRO: combineSchemas("Medicina Reproductiva / Fertilidad", [
-    {
-      key: "repro_specifics",
-      label: "3. Evaluación de Fertilidad",
-      fields: [
-        { key: "infertilityTime", label: "Tiempo de Infertilidad (años)", type: 'number' },
-        { key: "spermAnalysis", label: "Resultado del Espermograma (Concentración, Motilidad)", type: 'text' },
-        { key: "ovarianReserve", label: "Reserva Ovárica (AMH)", type: 'text' }
-      ]
-    },
-  ]),
-
-  PERI: combineSchemas("Perinatología / Medicina Materno-Fetal", [
-    {
-      key: "peri_specifics",
-      label: "3. Monitoreo Materno-Fetal",
-      fields: [
-        { key: "fetalGrowth", label: "Crecimiento Fetal (Percentil y Peso Estimado)", type: 'text' },
-        { key: "maternalComorbidity", label: "Comorbilidad Materna de Alto Riesgo", type: 'text' },
-        { key: "doppler", label: "Hallazgos de Doppler Fetal/Uterino", type: 'text' }
-      ]
-    },
-  ]),
-
-  // 4. Pediatría y Subespecialidades
-  PED: combineSchemas("Pediatría General", [
-    {
-      key: "ped_specifics",
-      label: "3. Crecimiento y Desarrollo",
-      fields: [
-        { key: "weight_percentile", label: "Peso (kg) / Percentil", type: 'text' },
-        { key: "height_percentile", label: "Estatura (cm) / Percentil", type: 'text' },
-        { key: "developmentalMilestones", label: "Hitos del Desarrollo (Cumplidos/Retrasos)", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  NEON: combineSchemas("Neonatología", [
-    {
-      key: "neon_specifics",
-      label: "3. Evaluación Neonatal y Transición",
-      fields: [
-        { key: "apgar", label: "Puntuación de Apgar (1 y 5 minutos)", type: 'text' },
-        { key: "gestationalAgeBirth", label: "Edad Gestacional al Nacimiento (Semanas)", type: 'number' },
-        { key: "bilirubin", label: "Nivel de Bilirrubina (Ictericia)", type: 'text' }
-      ]
-    },
-  ]),
-
-  PEDCR: combineSchemas("Pediatría Crítica", [
-    {
-      key: "pedcr_specifics",
-      label: "3. Parámetros UCI Pediátrica",
-      fields: [
-        { key: "pews", label: "Puntuación PEWS / PIM", type: 'text' },
-        { key: "ventilationStatus", label: "Estado de Ventilación/Oxigenación (FiO2, PEEP)", type: 'text' },
-      ]
-    },
-  ]),
-
-  CARPED: combineSchemas("Cardiología Pediátrica", [
-    {
-      key: "carped_specifics",
-      label: "3. Evaluación Cardíaca Infantil",
-      fields: [
-        { key: "congenitalHeartDisease", label: "Cardiopatía Congénita (Diagnóstico y Clasificación)", type: 'text' },
-        { key: "echoFinding", label: "Hallazgos Ecocardiográficos Clave (Shunts, Válvulas)", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  NEUPED: combineSchemas("Neuropediatría", [
-    {
-      key: "neuped_specifics",
-      label: "3. Evaluación Neurodesarrollo",
-      fields: [
-        { key: "seizureType", label: "Tipo y Frecuencia de Crisis Epiléptica", type: 'text' },
-        { key: "eegResult", label: "Resultado de EEG (Focos de Actividad)", type: 'text' },
-      ]
-    },
-  ]),
-
-  ENDOPE: combineSchemas("Endocrinología Pediátrica", [
-    {
-      key: "endope_specifics",
-      label: "3. Evaluación Hormonal y de Crecimiento Infantil",
-      fields: [
-        { key: "tannerStage", label: "Estadio de Tanner", type: 'select', options: INTERNAL_COMMON_OPTIONS.tannerStages },
-        { key: "boneAge", label: "Edad Ósea (Resultado)", type: 'text' }
-      ]
-    },
-  ]),
-
-  GASTPED: combineSchemas("Gastroenterología Pediátrica", [
-    {
-      key: "gastped_specifics",
-      label: "3. Evaluación Gastrointestinal Infantil",
-      fields: [
-        { key: "feedingTolerence", label: "Tolerancia a la Alimentación/Fórmula", type: 'text' },
-        { key: "allergy", label: "Alergias Alimentarias Comprobadas", type: 'text' },
-      ]
-    },
-  ]),
-
-  NEFPED: combineSchemas("Nefrología Pediátrica", [
-    {
-      key: "nefped_specifics",
-      label: "3. Evaluación Renal Infantil",
-      fields: [
-        { key: "urineOutput", label: "Gasto Urinario (ml/kg/h)", type: 'text' },
-        { key: "kidneyFunction", label: "Función Renal (Creatinina, TFG)", type: 'text' },
-      ]
+      key: "gen_focus",
+      label: "3. Revisión por Sistemas",
+      fields: [{ key: "segmentary", label: "Examen Segmentario", type: "textarea" }],
     },
   ]),
-
-  NEUMOPED: combineSchemas("Neumonología Pediátrica", [
-    {
-      key: "neumoped_specifics",
-      label: "3. Evaluación Pulmonar Infantil",
-      fields: [
-        { key: "asthmaControl", label: "Control de Asma (Clasificación GINA)", type: 'text' },
-        { key: "spirometry", label: "Resultado de Espirometría (si aplica)", type: 'text' },
-      ]
-    },
-  ]),
-
-  HEMPED: combineSchemas("Hematología Pediátrica", [
-    {
-      key: "hemped_specifics",
-      label: "3. Evaluación Hematológica Infantil",
-      fields: [
-        { key: "cbc", label: "Hemograma Completo (Valores Anormales)", type: 'textarea' },
-        { key: "coagulation", label: "Perfil de Coagulación (TP, TPTT)", type: 'text' }
-      ]
-    },
-  ]),
-
-  INFPE: combineSchemas("Infectología Pediátrica", [
-    {
-      key: "infpe_specifics",
-      label: "3. Manejo de Infecciones Infantiles",
-      fields: [
-        { key: "source", label: "Foco de Infección (Ej. ITU, Neumonía)", type: 'text' },
-        { key: "antibioticUsed", label: "Antibiótico Usado y Días de Tratamiento", type: 'text' }
-      ]
-    },
-  ]),
-
-  // 5. Medicina Interna: Subespecialidades de Adultos
-  CARO: combineSchemas("Cardiología", [
-    {
-      key: "caro_specifics",
-      label: "3. Evaluación Cardiovascular Específica",
-      fields: [
-        { key: "ekgResult", label: "Resultado de Electrocardiograma (Ritmo, Bloqueos)", type: 'text' },
-        { key: "chfClass", label: "Clase NYHA (Insuficiencia Cardíaca)", type: 'select', options: INTERNAL_COMMON_OPTIONS.nyhaClasses },
-        { key: "echocardiogram", label: "Hallazgos de Ecocardiograma", type: 'textarea' }
-      ]
-    },
-  ]),
-
-  NEUMO: combineSchemas("Neumonología", [
-    {
-      key: "neumo_specifics",
-      label: "3. Evaluación Pulmonar",
-      fields: [
-        { key: "fev1", label: "FEV1 (%)", type: 'number' },
-        { key: "smokingHistory", label: "Historial de Tabaquismo (Paquetes/año)", type: 'number' }
-      ]
-    },
-  ]),
-
-  NEFRO: combineSchemas("Nefrología", [
-    {
-      key: "nefro_specifics",
-      label: "3. Evaluación Renal",
-      fields: [
-        { key: "gfr", label: "Tasa de Filtración Glomerular (TFG)", type: 'number' },
-        { key: "dialysis", label: "¿En Diálisis?", type: 'checkbox' }
-      ]
-    },
-  ]),
-
-  ENDO: combineSchemas("Endocrinología", [
+  "Medicina Familiar": STANDARD_CLINICAL("Medicina Familiar"),
+  "Geriatría": combineSchemas("Geriatría", [
     {
-      key: "endo_specifics",
-      label: "3. Evaluación Metabólica y Hormonal",
+      key: "geri_eval",
+      label: "3. Valoración Geriátrica",
       fields: [
-        { key: "hba1c", label: "HbA1c (%)", type: 'number' },
-        { key: "thyroidFunction", label: "Pruebas de Función Tiroidea (TSH, T4L)", type: 'text' }
-      ]
+        { key: "functionality", label: "Funcionalidad/Barthel", type: "text" },
+        { key: "cognitive", label: "Cognitivo/Minimental", type: "text" },
+      ],
     },
   ]),
-
-  GASTRO: combineSchemas("Gastroenterología", [
+  "Medicina Preventiva": STANDARD_CLINICAL("Medicina Preventiva"),
+  "Cuidados Paliativos": combineSchemas("Cuidados Paliativos", [
     {
-      key: "gastro_specifics",
-      label: "3. Evaluación Digestiva",
-      fields: [
-        { key: "endoscopy", label: "Resultado de Endoscopia Digestiva Alta", type: 'text' },
-        { key: "ibsType", label: "Tipo de SII (si aplica)", type: 'select', options: INTERNAL_COMMON_OPTIONS.siiTypes }
-      ]
+      key: "pali_eval",
+      label: "3. Control de Síntomas",
+      fields: [{ key: "pain_level", label: "Escala EVA", type: "select", options: INTERNAL_COMMON_OPTIONS.painScale }],
     },
   ]),
 
-  HEPA: combineSchemas("Hepatología", [
+  // --- GRUPO 2: ESPECIALIDADES MÉDICAS ---
+  "Cardiología": combineSchemas("Cardiología", [
     {
-      key: "hepa_specifics",
-      label: "3. Evaluación Hepática",
+      key: "cardio_eval",
+      label: "3. Cardiovascular",
       fields: [
-        { key: "childPugh", label: "Clasificación de Child-Pugh", type: 'select', options: INTERNAL_COMMON_OPTIONS.childPughClasses },
-        { key: "viralHepatitis", label: "Hepatitis Viral (Tipo)", type: 'text' }
-      ]
+        { key: "nyha", label: "Clase NYHA", type: "select", options: INTERNAL_COMMON_OPTIONS.nyhaClasses },
+        { key: "ekg", label: "Electrocardiograma", type: "textarea", placeholder: "Ritmo, eje, isquemia..." },
+        {
+          key: "edema",
+          label: "Edemas",
+          type: "select",
+          options: [
+            { label: "No", value: "0" },
+            { label: "+", value: "1" },
+            { label: "++", value: "2" },
+            { label: "+++", value: "3" },
+          ],
+        },
+      ],
     },
   ]),
 
-  REUM: combineSchemas("Reumatología", [
+  // Neumología: auscultación + TNM
+  "Neumología": combineSchemas("Neumología", [
     {
-      key: "reum_specifics",
-      label: "3. Evaluación Reumatológica",
+      key: "neumo_eval",
+      label: "3. Pulmonar",
       fields: [
-        { key: "painJoints", label: "Articulaciones Dolorosas/Inflamadas", type: 'text' },
-        { key: "autoantibodies", label: "Autoanticuerpos (FAN, FR, ACPA)", type: 'text' }
-      ]
+        {
+          key: "auscultation",
+          label: "Auscultación",
+          type: "select",
+          options: [
+            { label: "Normal", value: "OK" },
+            { label: "Sibilantes", value: "SIB" },
+            { label: "Crepitantes", value: "CREP" },
+          ],
+        },
+        { key: "dyspnea", label: "Disnea (mMRC)", type: "select", options: INTERNAL_COMMON_OPTIONS.dyspneaScaleMMRC },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Torácicos/Pulmonares"),
   ]),
 
-  INFEC: combineSchemas("Infectología", [
+  // Gastroenterología: palpación abdominal + TNM
+  "Gastroenterología": combineSchemas("Gastroenterología", [
     {
-      key: "infec_specifics",
-      label: "3. Manejo de Infecciones",
+      key: "gastro_eval",
+      label: "3. Digestivo",
       fields: [
-        { key: "cultureResult", label: "Resultado de Cultivo y Antibiograma", type: 'text' },
-        { key: "travelHistory", label: "Historial de Viajes Recientes", type: 'text' }
-      ]
+        { key: "abdomen_palpation", label: "Palpación Abdominal", type: "textarea", placeholder: "Dolor, masas, defensa, visceromegalias..." },
+        { key: "rectal_exam", label: "Tacto Rectal", type: "text" },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Digestivos"),
   ]),
 
-  HEMA: combineSchemas("Hematología", [
+  "Endocrinología": combineSchemas("Endocrinología", [
     {
-      key: "hema_specifics",
-      label: "3. Evaluación de Sangre y Médula",
+      key: "endo_eval",
+      label: "3. Metabólico",
       fields: [
-        { key: "bloodSmear", label: "Frotis de Sangre Periférica", type: 'text' },
-        { key: "transfusionHistory", label: "Historial de Transfusiones", type: 'text' }
-      ]
+        { key: "bmi", label: "IMC Calculado", type: "number" },
+        { key: "thyroid", label: "Palpación Tiroides", type: "text" },
+      ],
     },
   ]),
-
-  INMUNO: combineSchemas("Inmunología Clínica", [
+  "Nefrología": STANDARD_CLINICAL("Nefrología"),
+  "Neurología": combineSchemas("Neurología", [
     {
-      key: "inmuno_specifics",
-      label: "3. Evaluación del Sistema Inmune",
+      key: "neuro_eval",
+      label: "3. Neurológico",
       fields: [
-        { key: "immunodeficiency", label: "Inmunodeficiencia (Tipo)", type: 'text' },
-        { key: "autoimmunityTest", label: "Pruebas de Autoinmunidad", type: 'text' }
-      ]
+        { key: "glasgow", label: "Glasgow", type: "select", options: INTERNAL_COMMON_OPTIONS.glasgowComa },
+        { key: "motor", label: "Fuerza Motor", type: "select", options: INTERNAL_COMMON_OPTIONS.muscleStrength },
+        { key: "reflexes", label: "Reflejos", type: "text" },
+      ],
     },
   ]),
+  "Reumatología": STANDARD_CLINICAL("Reumatología"),
+  "Hematología": STANDARD_CLINICAL("Hematología"),
+  "Infectología": STANDARD_CLINICAL("Infectología"),
+  "Inmunología y Alergología": STANDARD_CLINICAL("Inmunología y Alergología"),
 
-  ALER: combineSchemas("Alergología", [
+  // Dermatología: tipo de lesión + TNM
+  "Dermatología": combineSchemas("Dermatología", [
     {
-      key: "aler_specifics",
-      label: "3. Evaluación de Alergias",
+      key: "derma_eval",
+      label: "3. Piel y Faneras",
       fields: [
-        { key: "allergenTest", label: "Pruebas Cutáneas/IgE Específica", type: 'text' },
-        { key: "drugAllergies", label: "Alergias a Medicamentos", type: 'text' }
-      ]
+        { key: "lesion_type", label: "Tipo de Lesión", type: "text", placeholder: "Mácula, pápula, placa, nódulo, vesícula..." },
+        { key: "lesion_morphology", label: "Morfología / Bordes / Pigmento", type: "textarea", rows: 2 },
+        { key: "location", label: "Localización", type: "text" },
+      ],
     },
+    TNM_SECTION("4. TNM - Lesiones Cutáneas (cuando aplique)"),
   ]),
 
-  // 6. Especialidades de Rehabilitación y Función
-  REHAB: combineSchemas("Medicina Física y Rehabilitación", [
+  // Oncología Médica: TNM + ECOG
+  "Oncología Médica": combineSchemas("Oncología Médica", [
     {
-      key: "rehab_specifics",
-      label: "3. Evaluación Funcional",
+      key: "onco_eval",
+      label: "3. Estado Funcional y Oncológico",
       fields: [
-        { key: "motorDeficit", label: "Déficit Motor (Ej. Hemiparesia)", type: 'text' },
-        { key: "rehabPlan", label: "Plan de Terapia (Física, Ocupacional, Lenguaje)", type: 'textarea' }
-      ]
+        { key: "ecog", label: "ECOG", type: "select", options: INTERNAL_COMMON_OPTIONS.ecogStatus, fullWidth: true },
+        { key: "tumor_primary_site", label: "Sitio primario / órgano", type: "text" },
+        { key: "tumor_notes", label: "Notas oncológicas", type: "textarea", rows: 3 },
+      ],
     },
+    TNM_SECTION("4. Clasificación Tumoral (TNM)"),
   ]),
 
-  FISI: combineSchemas("Fisiatría", [
-    {
-      key: "fisi_specifics",
-      label: "3. Evaluación del Movimiento",
-      fields: [
-        { key: "jointRange", label: "Rango Articular (ROM)", type: 'text' },
-        { key: "muscleStrength", label: "Fuerza Muscular (Escala de Daniels)", type: 'text' }
-      ]
-    },
-  ]),
+  "Medicina Física y Rehabilitación": STANDARD_CLINICAL("Medicina Física y Rehabilitación"),
 
-  DOLOR: combineSchemas("Terapia del Dolor / Algología", [
+  // --- GRUPO 3: QUIRÚRGICO ---
+  "Cirugía General": STANDARD_SURGICAL("Cirugía General"),
+  "Traumatología y Ortopedia": combineSchemas("Traumatología y Ortopedia", [
     {
-      key: "dolor_specifics",
-      label: "3. Manejo del Dolor Crónico",
+      key: "trauma_eval",
+      label: "3. Osteomuscular",
       fields: [
-        { key: "painScore", label: "Puntuación de Dolor (NRS 0-10)", type: 'number' },
-        { key: "painType", label: "Tipo de Dolor (Neuropático, Nociceptivo)", type: 'text' }
-      ]
+        { key: "affected_limb", label: "Miembro Afectado", type: "text", required: true },
+        { key: "fracture_signs", label: "Signos de Fractura", type: "checkbox" },
+        { key: "rom", label: "Arcos de Movimiento", type: "text" },
+      ],
     },
   ]),
 
-  // 7. Especialidades Psicológicas y Psiquiátricas
-  PSIQ: combineSchemas("Psiquiatría", [
-    {
-      key: "psiqui_specifics",
-      label: "3. Evaluación de Salud Mental",
-      fields: [
-        { key: "axis1Diagnosis", label: "Diagnóstico Principal (DSM-5)", type: 'text' },
-        { key: "suicideRisk", label: "Riesgo Suicida", type: 'select', options: INTERNAL_COMMON_OPTIONS.suicideRisk }
-      ]
-    },
-  ]),
+  // =========================================================
+  // ACTUALIZACIÓN FINAL: REEMPLAZAR STANDARD_SURGICAL
+  // en cirugías con alta incidencia tumoral + TNM_SECTION
+  // =========================================================
 
-  PSIQUI_INF: combineSchemas("Psiquiatría Infantil y del Adolescente", [
+  // Neurocirugía: Localización SNC + TNM
+  "Neurocirugía": combineSchemas("Neurocirugía", [
     {
-      key: "psiquiinf_specifics",
-      label: "3. Evaluación Psiquiátrica Infantil",
+      key: "neurosurg_eval",
+      label: "3. Hallazgos Neuroquirúrgicos",
       fields: [
-        { key: "developmentalStage", label: "Etapa de Desarrollo", type: 'text' },
-        { key: "schoolPerformance", label: "Rendimiento Escolar/Problemas de Conducta", type: 'text' }
-      ]
+        {
+          key: "snc_lesion_location",
+          label: "Localización de lesión (SNC)",
+          type: "text",
+          placeholder: "Ej: Frontal izquierdo, cerebelo, tronco, médula (nivel)...",
+        },
+        {
+          key: "neuro_deficits",
+          label: "Déficit neurológico / focalidad",
+          type: "textarea",
+          rows: 2,
+          placeholder: "Pares craneales, motor, sensitivo, lenguaje, marcha...",
+        },
+        {
+          key: "neurosurg_plan",
+          label: "Plan quirúrgico / conducta",
+          type: "textarea",
+          rows: 3,
+        },
+      ],
     },
+    TNM_SECTION("4. TNM - Lesiones Tumorales SNC (cuando aplique)"),
   ]),
 
-  PSICO: combineSchemas("Psicogeriatría", [
-    {
-      key: "psico_specifics",
-      label: "3. Evaluación de Salud Mental Geriátrica",
-      fields: [
-        { key: "dementiaType", label: "Tipo de Demencia (si aplica)", type: 'text' },
-        { key: "behavioralSymptoms", label: "Síntomas Conductuales (Agitación, Apatía)", type: 'text' }
-      ]
-    },
-  ]),
+  "Cirugía Cardiovascular": STANDARD_SURGICAL("Cirugía Cardiovascular"),
 
-  PSIC: combineSchemas("Psicología Clínica", [
+  // Cirugía Torácica: Hallazgos pleuro-pulmonares + TNM
+  "Cirugía Torácica": combineSchemas("Cirugía Torácica", [
     {
-      key: "psic_specifics",
-      label: "3. Evaluación Psicológica",
+      key: "thoracic_eval",
+      label: "3. Hallazgos Torácicos",
       fields: [
-        { key: "testing", label: "Pruebas Aplicadas (Ej. Beck, WAIS)", type: 'text' },
-        { key: "therapyType", label: "Tipo de Terapia (TCC, Dinámica)", type: 'text' }
-      ]
+        {
+          key: "pleuro_pulmonary_findings",
+          label: "Hallazgos pleuro-pulmonares",
+          type: "textarea",
+          rows: 3,
+          placeholder: "Masas, derrame, atelectasia, bullas, adenopatías, etc.",
+        },
+        {
+          key: "thoracic_surgical_notes",
+          label: "Notas quirúrgicas torácicas",
+          type: "textarea",
+          rows: 2,
+        },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Torácicos"),
   ]),
 
-  // 8. Especialidades Odontológicas
-  ODON: combineSchemas("Odontología General", [
+  // Urología: tacto prostático + TNM
+  "Urología": combineSchemas("Urología", [
     {
-      key: "odon_specifics",
-      label: "3. Evaluación Dental General",
+      key: "uro_eval",
+      label: "3. Urogenital",
       fields: [
-        { key: "caries", label: "Índice de Caries (CEO-D/CPOD)", type: 'text' },
-        { key: "hygieneScore", label: "Índice de Higiene Oral", type: 'text' }
-      ]
+        { key: "giordano", label: "Giordano (Puñopercusión)", type: "checkbox" },
+        { key: "prostate_dre", label: "Tacto Prostático (DRE)", type: "textarea", rows: 2, placeholder: "Tamaño, consistencia, nódulos, dolor..." },
+        { key: "uro_notes", label: "Hallazgos urológicos", type: "textarea", rows: 2 },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Urológicos"),
   ]),
 
-  ORTO_ODON: combineSchemas("Ortodoncia", [
+  "Otorrinolaringología": combineSchemas("Otorrinolaringología", [
     {
-      key: "ortoodon_specifics",
-      label: "3. Evaluación de Oclusión",
+      key: "orl_eval",
+      label: "3. Examen ORL Completo",
       fields: [
-        { key: "malocclusionClass", label: "Clase de Maloclusión (Angle)", type: 'select', options: INTERNAL_COMMON_OPTIONS.malocclusionClass },
-        { key: "treatmentDevice", label: "Aparato de Ortodoncia", type: 'text' }
-      ]
+        { key: "otoscopy_r", label: "Otoscopia Oído Der.", type: "text" },
+        { key: "otoscopy_l", label: "Otoscopia Oído Izq.", type: "text" },
+        { key: "rhinoscopy", label: "Rinoscopia Anterior", type: "text" },
+        { key: "oropharynx", label: "Orofaringe/Amígdalas", type: "text" },
+      ],
     },
   ]),
-
-  ODON_PED: combineSchemas("Odontopediatría", [
+  "Oftalmología": combineSchemas("Oftalmología", [
     {
-      key: "odonped_specifics",
-      label: "3. Evaluación Dental Infantil",
+      key: "oft_eval",
+      label: "3. Examen Ocular",
       fields: [
-        { key: "eruptionStatus", label: "Estado de Erupción Dental", type: 'text' },
-        { key: "fluorideApplied", label: "Aplicación de Flúor", type: 'checkbox' }
-      ]
+        { key: "av_od", label: "Agudeza Visual OD", type: "text" },
+        { key: "av_os", label: "Agudeza Visual OI", type: "text" },
+        { key: "fundoscopy", label: "Fondo de Ojo", type: "textarea" },
+      ],
     },
   ]),
+  "Cirugía Plástica y Reconstructiva": STANDARD_SURGICAL("Cirugía Plástica y Reconstructiva"),
 
-  ENDOD: combineSchemas("Endodoncia", [
+  // Cirugía Pediátrica: Anomalía/Masa palpable + TNM
+  "Cirugía Pediátrica": combineSchemas("Cirugía Pediátrica", [
     {
-      key: "endod_specifics",
-      label: "3. Evaluación Endodóntica",
+      key: "pedsurg_eval",
+      label: "3. Hallazgos Quirúrgicos Pediátricos",
       fields: [
-        { key: "toothNumber", label: "Pieza Dental Afectada (FDI)", type: 'number' },
-        { key: "pulpalDiagnosis", label: "Diagnóstico Pulpar", type: 'text' }
-      ]
+        {
+          key: "palpable_anomaly_mass",
+          label: "Anomalía / Masa palpable",
+          type: "textarea",
+          rows: 2,
+          placeholder: "Describe localización, tamaño, consistencia, dolor, movilidad...",
+        },
+        {
+          key: "pedsurg_notes",
+          label: "Notas quirúrgicas pediátricas",
+          type: "textarea",
+          rows: 3,
+        },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Pediátricos (cuando aplique)"),
   ]),
 
-  PERIODON: combineSchemas("Periodoncia", [
+  // Coloproctología: Hallazgos colon/recto + TNM
+  "Coloproctología": combineSchemas("Coloproctología", [
     {
-      key: "periodon_specifics",
-      label: "3. Evaluación Periodontal",
+      key: "coloproct_eval",
+      label: "3. Hallazgos Coloproctológicos",
       fields: [
-        { key: "pocketDepth", label: "Profundidad de Sondaje (mm)", type: 'text' },
-        { key: "gingivalStatus", label: "Estado Gingival (Índice de Sangrado)", type: 'text' }
-      ]
+        {
+          key: "colon_rectum_findings",
+          label: "Hallazgos en colon/recto",
+          type: "textarea",
+          rows: 3,
+          placeholder: "Dolor, sangrado, masas, fisuras, hemorroides, tumoración, etc.",
+        },
+        {
+          key: "proctology_exam",
+          label: "Examen proctológico / tacto / anoscopia (si aplica)",
+          type: "textarea",
+          rows: 2,
+        },
+      ],
     },
+    TNM_SECTION("4. TNM - Tumores Colorrectales"),
   ]),
 
-  ODON_MAX: combineSchemas("Cirugía Bucal / Maxilofacial", [
+  "Angiología y Cirugía Vascular": combineSchemas("Angiología y Cirugía Vascular", [
     {
-      key: "odonmax_specifics",
-      label: "3. Evaluación de Cirugía Bucal",
+      key: "vasc_eval",
+      label: "3. Vascular Periférico",
       fields: [
-        { key: "procedurePlanned", label: "Procedimiento a realizar (Extracción, Implante, Quiste)", type: 'text' },
-        { key: "boneAvailability", label: "Disponibilidad Ósea (Implantes)", type: 'text' }
-      ]
+        { key: "pulses", label: "Pulsos Periféricos", type: "text" },
+        { key: "varicose", label: "Várices / Flebopatía", type: "text" },
+      ],
     },
   ]),
+  "Cirugía Oral y Maxilofacial": STANDARD_SURGICAL("Cirugía Oral y Maxilofacial"),
+  "Cirugía Bariátrica y Metabólica": STANDARD_SURGICAL("Cirugía Bariátrica y Metabólica"),
 
-  REHABIL: combineSchemas("Rehabilitación Oral", [
+  // Mastología: palpación + TNM
+  "Mastología": combineSchemas("Mastología", [
     {
-      key: "rehabil_specifics",
-      label: "3. Plan de Rehabilitación Oral",
+      key: "masto_eval",
+      label: "3. Examen Mamario",
       fields: [
-        { key: "edentulismType", label: "Tipo de Edentulismo", type: 'text' },
-        { key: "prosthesisType", label: "Tipo de Prótesis (Fija, Removible, Implantes)", type: 'text' }
-      ]
+        { key: "breast_palpation", label: "Palpación / Nódulos", type: "textarea", rows: 3 },
+        { key: "nipple_complex", label: "Complejo Areola-Pezón", type: "text" },
+        { key: "axillary_nodes", label: "Adenopatías Axilares", type: "text" },
+      ],
     },
+    TNM_SECTION("4. TNM - Cáncer de Mama"),
   ]),
 
-  IMPLANT: combineSchemas("Implantología", [
+  // --- GRUPO 4: MATERNO INFANTIL ---
+  "Ginecología y Obstetricia": combineSchemas("Ginecología y Obstetricia", [
     {
-      key: "implant_specifics",
-      label: "3. Plan de Implantología",
+      key: "gyn_eval",
+      label: "3. Gineco-Obstétrico",
       fields: [
-        { key: "implantLocation", label: "Ubicación del Implante (Número de Pieza)", type: 'text' },
-        { key: "boneGrafting", label: "Necesidad de Injerto Óseo", type: 'checkbox' }
-      ]
+        { key: "fum", label: "FUM", type: "date" },
+        { key: "gpa", label: "G-P-A-C", type: "text", placeholder: "G0 P0 A0 C0" },
+        { key: "fcf", label: "Frecuencia Cardíaca Fetal", type: "number" },
+      ],
     },
   ]),
-
-  // 9. Administración y Salud Pública
-  MED_LAB: combineSchemas("Medicina del Trabajo", [
+  "Reproducción Humana": STANDARD_CLINICAL("Reproducción Humana"),
+  "Pediatría": combineSchemas("Pediatría", [
     {
-      key: "medlab_specifics",
-      label: "3. Evaluación Ocupacional",
+      key: "ped_eval",
+      label: "3. Puericultura",
       fields: [
-        { key: "jobExposure", label: "Exposición a Riesgos Laborales", type: 'text' },
-        { key: "fitToWork", label: "Apto para el Trabajo (Si/No/Restricciones)", type: 'text' }
-      ]
+        { key: "percentiles", label: "Percentiles", type: "text" },
+        { key: "vaccines", label: "Esquema Vacunación", type: "select", options: [{ label: "Completo", value: "OK" }, { label: "Incompleto", value: "NO" }] },
+      ],
     },
   ]),
-
-  MED_FOR: combineSchemas("Medicina Forense", [
+  "Neonatología": combineSchemas("Neonatología", [
     {
-      key: "medfor_specifics",
-      label: "3. Evaluación Legal y Causa",
+      key: "neo_eval",
+      label: "3. Neonatal",
       fields: [
-        { key: "injuries", label: "Hallazgos de Lesiones (Tipo y Causa Presunta)", type: 'textarea' },
-        { key: "causeOfDeath", label: "Causa de Muerte (si aplica)", type: 'text' }
-      ]
+        { key: "apgar", label: "Apgar", type: "text" },
+        { key: "reflexes_neo", label: "Reflejos Arcaicos", type: "text" },
+      ],
     },
   ]),
 
-  TOXICO: combineSchemas("Toxicología", [
+  // --- GRUPO 5: SALUD MENTAL ---
+  "Psiquiatría": combineSchemas("Psiquiatría", [
     {
-      key: "toxico_specifics",
-      label: "3. Evaluación Toxicológica",
+      key: "psiq_eval",
+      label: "3. Examen Mental",
       fields: [
-        { key: "substance", label: "Sustancia o Toxina Identificada", type: 'text' },
-        { key: "concentration", label: "Concentración en Sangre/Orina", type: 'text' }
-      ]
+        { key: "mood", label: "Estado de Ánimo", type: "text" },
+        { key: "thought", label: "Curso del Pensamiento", type: "text" },
+        { key: "risk", label: "Riesgo Suicida", type: "checkbox" },
+      ],
     },
   ]),
+  "Psicología Clínica": STANDARD_CLINICAL("Psicología Clínica"),
+  "Psiquiatría Infantil": STANDARD_CLINICAL("Psiquiatría Infantil"),
 
-  EPIDEMIO: combineSchemas("Epidemiología", [
+  // --- GRUPO 6: DIAGNÓSTICO Y SOPORTE ---
+  "Anestesiología y Reanimación": combineSchemas("Anestesiología y Reanimación", [
     {
-      key: "epidemio_specifics",
-      label: "3. Análisis Epidemiológico",
+      key: "anest_eval",
+      label: "3. Pre-Anestesia",
       fields: [
-        { key: "caseDefinition", label: "Definición de Caso (Sospechoso/Confirmado)", type: 'text' },
-        { key: "incidence", label: "Tasa de Incidencia/Prevalencia", type: 'text' }
-      ]
+        { key: "asa", label: "Clasificación ASA", type: "select", options: [{ label: "I", value: "1" }, { label: "II", value: "2" }, { label: "III", value: "3" }, { label: "IV", value: "4" }] },
+        { key: "mallampati", label: "Mallampati", type: "text" },
+      ],
     },
   ]),
-
-  SALUD_OCUP: combineSchemas("Salud Ocupacional", [
+  "Radiología e Imagenología": STANDARD_CLINICAL("Radiología e Imagenología"),
+  "Patología Clínica": STANDARD_CLINICAL("Patología Clínica"),
+  "Medicina Nuclear": STANDARD_CLINICAL("Medicina Nuclear"),
+  "Genética Médica": STANDARD_CLINICAL("Genética Médica"),
+  "Medicina de Urgencias": combineSchemas("Medicina de Urgencias", [
     {
-      key: "saludocup_specifics",
-      label: "3. Vigilancia de la Salud",
-      fields: [
-        { key: "riskAssessment", label: "Evaluación de Riesgos Ergonómicos/Psicosociales", type: 'text' },
-        { key: "preventionMeasures", label: "Medidas Preventivas Sugeridas", type: 'textarea' }
-      ]
+      key: "er_eval",
+      label: "3. Emergencia",
+      fields: [{ key: "triage", label: "Triaje", type: "select", options: INTERNAL_COMMON_OPTIONS.triageLevels }],
     },
   ]),
+  "Medicina Intensiva (UCI)": STANDARD_CLINICAL("Medicina Intensiva (UCI)"),
 
-  GESTION: combineSchemas("Gestión Sanitaria", [
+  // --- GRUPO 7: APOYO Y BIENESTAR ---
+  "Nutriología y Nutrición": combineSchemas("Nutriología y Nutrición", [
     {
-      key: "gestion_specifics",
-      label: "3. Evaluación de Procesos",
+      key: "nutri_eval",
+      label: "3. Estado Nutricional",
       fields: [
-        { key: "qualityIndicator", label: "Indicador de Calidad Relevante (Ej. Tiempos de espera)", type: 'text' },
-        { key: "resourceAllocation", label: "Asignación de Recursos", type: 'text' }
-      ]
+        { key: "diet_anamnesis", label: "Recordatorio 24h", type: "textarea" },
+        { key: "goals", label: "Metas Calóricas", type: "text" },
+      ],
     },
   ]),
+  "Fonoaudiología": STANDARD_CLINICAL("Fonoaudiología"),
+  "Fisioterapia": STANDARD_CLINICAL("Fisioterapia"),
+  "Medicina del Deporte": STANDARD_CLINICAL("Medicina del Deporte"),
+  "Medicina del Sueño": STANDARD_CLINICAL("Medicina del Sueño"),
+  "Medicina del Dolor (Algología)": STANDARD_CLINICAL("Medicina del Dolor (Algología)"),
+  "Sexología Médica": STANDARD_CLINICAL("Sexología Médica"),
+  "Medicina Estética": STANDARD_CLINICAL("Medicina Estética"),
+  "Salud Ocupacional": STANDARD_CLINICAL("Salud Ocupacional"),
 };
+
+// ==========================================
+// 5. AGRUPACIÓN PARA EL SELECTOR (UI)
+// ==========================================
+export const SPECIALTY_GROUPS_UI = [
+  {
+    label: "Clínica General (Adultos)",
+    keys: ["Medicina Interna", "Medicina General", "Medicina Familiar", "Geriatría", "Medicina Preventiva", "Cuidados Paliativos"],
+  },
+  {
+    label: "Especialidades Médicas",
+    keys: [
+      "Cardiología",
+      "Neumología",
+      "Gastroenterología",
+      "Endocrinología",
+      "Nefrología",
+      "Neurología",
+      "Reumatología",
+      "Hematología",
+      "Infectología",
+      "Inmunología y Alergología",
+      "Dermatología",
+      "Oncología Médica",
+      "Medicina Física y Rehabilitación",
+    ],
+  },
+  {
+    label: "Bloque Quirúrgico",
+    keys: [
+      "Cirugía General",
+      "Traumatología y Ortopedia",
+      "Neurocirugía",
+      "Cirugía Cardiovascular",
+      "Cirugía Torácica",
+      "Urología",
+      "Otorrinolaringología",
+      "Oftalmología",
+      "Cirugía Plástica y Reconstructiva",
+      "Cirugía Pediátrica",
+      "Coloproctología",
+      "Angiología y Cirugía Vascular",
+      "Cirugía Oral y Maxilofacial",
+      "Cirugía Bariátrica y Metabólica",
+      "Mastología",
+    ],
+  },
+  { label: "Materno Infantil", keys: ["Ginecología y Obstetricia", "Reproducción Humana", "Pediatría", "Neonatología"] },
+  { label: "Salud Mental", keys: ["Psiquiatría", "Psicología Clínica", "Psiquiatría Infantil"] },
+  {
+    label: "Diagnóstico y Soporte",
+    keys: ["Anestesiología y Reanimación", "Radiología e Imagenología", "Patología Clínica", "Medicina Nuclear", "Genética Médica", "Medicina de Urgencias", "Medicina Intensiva (UCI)"],
+  },
+  {
+    label: "Apoyo y Bienestar",
+    keys: [
+      "Nutriología y Nutrición",
+      "Fonoaudiología",
+      "Fisioterapia",
+      "Medicina del Deporte",
+      "Medicina del Sueño",
+      "Medicina del Dolor (Algología)",
+      "Sexología Médica",
+      "Medicina Estética",
+      "Salud Ocupacional",
+    ],
+  },
+];
