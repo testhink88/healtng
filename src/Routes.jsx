@@ -1,3 +1,4 @@
+// src/routes/Routes.jsx
 import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter,
@@ -15,12 +16,14 @@ import { ProfessionalProvider } from "@/context/ProfessionalContext";
 // --- Guard de perfil de negocio
 const ProfileGate = lazy(() => import("@/features/provider/components/ProfileGate"));
 
+// --- ✅ Router de Settings (scopes)
+const SettingsRouter = lazy(() => import("@/pages/settings/SettingsRouter"));
+
 // --- Loader de Suspense ---
 const Fallback = () => (
   <div className="w-full h-[50vh] flex items-center justify-center text-sm text-gray-500">
     <div className="flex flex-col items-center gap-2">
-       {/* Puedes poner tu Icon Loader aquí */}
-       <span>Cargando Healtng...</span>
+      <span>Cargando Healtng...</span>
     </div>
   </div>
 );
@@ -35,9 +38,6 @@ const PrescriptionManagement = lazy(() => import("@/pages/prescription-managemen
 const MedicalHistory = lazy(() => import("@/pages/medical-history"));
 const DoctorDiscovery = lazy(() => import("@/pages/doctor-discovery"));
 const PaymentProcessing = lazy(() => import("@/pages/payment-processing"));
-
-// ✅ NUEVO: Configuración de Médico
-const DoctorSettings = lazy(() => import("@/pages/settings/DoctorSettings"));
 
 const NewPrescriptionForm = lazy(() => import("@/pages/new-prescription-form"));
 const NewDiagnosisForm = lazy(() => import("@/pages/new-diagnosis-form"));
@@ -72,8 +72,12 @@ const ClinicAppointmentsManagement = lazy(() => import("@/pages/clinic-appointme
 const ClinicMarketplaceHub = lazy(() => import("@/pages/clinic-marketplace-hub"));
 const ClinicSpacesManagement = lazy(() => import("@/pages/clinic-spaces-management"));
 const NewSpaceRegistration = lazy(() => import("@/pages/new-space-registration"));
-const ClinicOperationsOverviewDashboard = lazy(() => import("@/pages/clinic-operations-overview-dashboard"));
-const ClinicManagementDashboard = lazy(() => import("@/pages/clinic-management-dashboard"));
+const ClinicOperationsOverviewDashboard = lazy(() =>
+  import("@/pages/clinic-operations-overview-dashboard")
+);
+const ClinicManagementDashboard = lazy(() =>
+  import("@/pages/clinic-management-dashboard")
+);
 
 // Capacidades
 const RxIntake = lazy(() => import("@/pages/capabilities/RxIntake"));
@@ -98,9 +102,15 @@ const ProviderAnalytics = lazy(() => import("@/features/provider/pages/ProviderA
 const ProviderB2B = lazy(() => import("@/features/provider/pages/ProviderB2B"));
 const ProviderRxIntake = lazy(() => import("@/features/provider/pages/ProviderRxIntake"));
 const ProviderAuthorizations = lazy(() => import("@/features/provider/pages/ProviderAuthorizations"));
-const ProviderDispatchManagement = lazy(() => import("@/features/provider/pages/ProviderDispatchManagement"));
-const ProviderBillingManagement = lazy(() => import("@/features/provider/pages/ProviderBillingManagement"));
-const ProviderModuleConfiguration = lazy(() => import("@/features/provider/pages/ProviderModuleConfiguration"));
+const ProviderDispatchManagement = lazy(() =>
+  import("@/features/provider/pages/ProviderDispatchManagement")
+);
+const ProviderBillingManagement = lazy(() =>
+  import("@/features/provider/pages/ProviderBillingManagement")
+);
+const ProviderModuleConfiguration = lazy(() =>
+  import("@/features/provider/pages/ProviderModuleConfiguration")
+);
 const ProviderProfileSetup = lazy(() => import("@/features/provider/pages/ProviderProfileSetup"));
 const ProviderCatalog = lazy(() => import("@/features/provider/pages/ProviderCatalog"));
 const ProviderLots = lazy(() => import("@/features/provider/pages/LotsPage"));
@@ -145,18 +155,28 @@ export default function Routes() {
               <Route path="/login" element={<Login />} />
 
               <Route path="/profile" element={<Navigate to="/patient-health-profile" replace />} />
-              
-              {/* ✅ RUTA DE CONFIGURACIÓN CONECTADA */}
+
+              {/* ✅ SETTINGS (router por scopes) */}
               <Route
-                path="/settings"
+                path="/settings/*"
                 element={
-                  <RoleGuard allowed={["doctor", "professional", "clinic", "clinic_admin"]}>
-                    <DoctorSettings />
+                  <RoleGuard
+                    allowed={[
+                      "doctor",
+                      "professional",
+                      "patient",
+                      "provider",
+                      "clinic",
+                      "clinic_admin",
+                      "system_admin",
+                    ]}
+                  >
+                    <SettingsRouter />
                   </RoleGuard>
                 }
               />
 
-              {/* Ayuda y Soporte siguen siendo placeholders por ahora */}
+              {/* Ayuda y Soporte */}
               <Route
                 path="/help"
                 element={
@@ -287,7 +307,23 @@ export default function Routes() {
                 }
               />
 
-              {/* Provider */}
+              {/* ✅ Provider Profile Setup (ruta CANÓNICA + protegida) */}
+              <Route
+                path="/provider/profile-setup"
+                element={
+                  <RoleGuard allowed={["provider"]}>
+                    <ProviderProfileSetup />
+                  </RoleGuard>
+                }
+              />
+
+              {/* ✅ Alias de compatibilidad (evita 404 por link viejo con guion) */}
+              <Route
+                path="/provider-profile-setup"
+                element={<Navigate to="/provider/profile-setup" replace />}
+              />
+
+              {/* Provider (todo lo demás) */}
               <Route
                 path="/provider/*"
                 element={
@@ -319,7 +355,6 @@ export default function Routes() {
                 <Route path="module-configuration" element={<ProviderModuleConfiguration />} />
                 <Route path="services" element={<ProviderServices />} />
               </Route>
-              <Route path="/provider/profile-setup" element={<ProviderProfileSetup />} />
 
               {/* CLÍNICA */}
               <Route
