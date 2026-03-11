@@ -103,7 +103,18 @@ const ConsultationDetailsModal = ({ isOpen, diagnosis, onClose }) => {
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+          <button 
+            onClick={() => {
+              const clinicSuffix = window.location.search.includes('scope=clinic') ? '?scope=clinic' : '';
+              window.location.href = `/patients/${diagnosis.patient_id}/diagnosis/${diagnosis.id}/edit${clinicSuffix}`;
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#0E39B1] hover:bg-blue-50 rounded-xl transition-colors"
+          >
+            <Icon name="Edit3" size={16} />
+            Editar Consulta
+          </button>
+          
           <button 
             onClick={onClose}
             className="px-6 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-100 transition-colors"

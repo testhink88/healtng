@@ -11,10 +11,13 @@ import Button from "@/components/ui/Button";
 import PrescriptionCard from "@/pages/prescription-management/components/PrescriptionCard";
 import PrescriptionFilters from "@/pages/prescription-management/components/PrescriptionFilters";
 import PrescriptionTabs from "@/pages/prescription-management/components/PrescriptionTabs";
+import { listPrescriptionsByDoctor } from "@/api/prescriptions/prescriptions";
+import { useAuth } from "@/context/AuthContext";
 
 const DoctorPrescriptionManager = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useAuth();
   const { currentProfessional } = useProfessional();
 
   // Estados de UI
@@ -26,40 +29,41 @@ const DoctorPrescriptionManager = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [prescriptions, setPrescriptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // MOCK DATA: Recetas emitidas POR este médico
+  // CARGAR RECETAS REALES DE SUPABASE
+  const loadPrescriptions = async () => {
+    if (!profile?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await listPrescriptionsByDoctor(profile.id);
+      
+      // Mapear campos de Supabase a la UI
+      const mapped = data.map(p => ({
+        ...p,
+        medicationName: p.name,
+        dosage: p.dosage,
+        quantity: p.quantity,
+        frequency: p.frequency,
+        patientName: p.patient?.full_name || "Paciente",
+        patientId: p.patient_id,
+        issueDate: p.created_at,
+        expiryDate: p.end_date || new Date(new Date(p.created_at).getTime() + 90*24*60*60*1000).toISOString(),
+        status: p.status, // dispensed, active, expired
+        doctorName: profile.full_name || "Médico",
+        specialty: profile.metadata?.specialty_label || "Especialista"
+      }));
+      setPrescriptions(mapped);
+    } catch (err) {
+      console.error("Error loading prescriptions:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setPrescriptions([
-      {
-        id: "RX-MD-001",
-        prescriptionNumber: "RX-2025-001",
-        medicationName: "Losartán Potásico",
-        dosage: "50mg",
-        quantity: "30 tabletas",
-        frequency: "Cada 24h",
-        patientName: "María González",
-        patientId: "PAT-001",
-        issueDate: "2025-01-10T10:00:00Z",
-        expiryDate: "2025-04-10T10:00:00Z",
-        status: "active", 
-        doctorName: currentProfessional?.name || "Yo"
-      },
-      {
-        id: "RX-MD-002",
-        prescriptionNumber: "RX-2025-002",
-        medicationName: "Amoxicilina",
-        dosage: "500mg",
-        quantity: "21 cápsulas",
-        frequency: "Cada 8h",
-        patientName: "Carlos Pérez",
-        patientId: "PAT-002",
-        issueDate: "2024-12-01T10:00:00Z",
-        expiryDate: "2024-12-08T10:00:00Z",
-        status: "expired",
-        doctorName: currentProfessional?.name || "Yo"
-      }
-    ]);
-  }, [currentProfessional]);
+    if (profile?.id) loadPrescriptions();
+  }, [profile?.id]);
 
   // Filtrado
   const filteredData = useMemo(() => {
@@ -137,8 +141,13 @@ const DoctorPrescriptionManager = () => {
           </div>
 
           {/* Lista de Resultados */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-             {filteredData.map(rx => (
+          {isLoading ? (
+             <div className="flex items-center justify-center p-20">
+                <Icon name="Loader2" className="animate-spin text-primary" size={40} />
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+               {filteredData.map(rx => (
                  <PrescriptionCard 
                     key={rx.id}
                     prescription={rx}
@@ -162,7 +171,8 @@ const DoctorPrescriptionManager = () => {
                     No se encontraron recetas en esta categoría.
                 </div>
              )}
-          </div>
+            </div>
+          )}
 
         </div>
       </main>

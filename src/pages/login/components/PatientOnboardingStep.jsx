@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import Button from "@/components/ui/Button";
-import logo from "/assets/brand/logo-dark.svg"; // Importa el logo correctamente
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
-// Lista de estados de Venezuela
 const VZLA_STATES = [
   { value: "amazonas", label: "Amazonas" },
   { value: "anzoategui", label: "Anzoátegui" },
@@ -32,58 +32,72 @@ const VZLA_STATES = [
 const inputClasses =
   "w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary";
 
-// Este componente es para el onboarding de los pacientes
 const PatientOnboardingStep = ({ onComplete, onBack }) => {
+  const { fetchProfile } = useAuth();
   const [name, setName] = useState("");
-  const [patientState, setPatientState] = useState(""); // Estado donde se registra
-  const [dob, setDob] = useState(""); // Para la fecha de nacimiento
-  const [email, setEmail] = useState(""); // Para el correo electrónico
-  const [allergies, setAllergies] = useState(""); // Alergias (si decides usar este campo)
+  const [patientState, setPatientState] = useState("");
+  const [dob, setDob] = useState("");
+  const [allergies, setAllergies] = useState("");
   const [chronicConditions, setChronicConditions] = useState("");
-  const [medications, setMedications] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    const data = {
-      name,
-      state: patientState,
-      dob,
-      email,
-      allergies,
-      chronicConditions,
-      medications,
-    };
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay usuario autenticado");
 
-    localStorage.setItem("patientProfile", JSON.stringify(data)); // Guarda temporalmente
-    onComplete?.(); // Cuando termina el onboarding, redirige al dashboard
+      const metadata = {
+        state: patientState,
+        dob,
+        allergies,
+        chronicConditions,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          full_name: name,
+          metadata: metadata,
+          onboarding_completed: true,
+          role: 'patient'
+        });
+
+      if (error) throw error;
+
+      if (fetchProfile) await fetchProfile(user.id);
+
+      setTimeout(() => {
+        onComplete?.();
+      }, 600);
+    } catch (err) {
+      alert("Error al guardar perfil: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-regular text-foreground text-center">
-         Completa tu información para recibir la mejor atención personalizada
-        y recomendaciones médicas.
+         Completa tu información para recibir la mejor atención personalizada.
       </h3>
-     
 
-      {/* Nombre */}
       <div>
-        <label className="block text-sm font-medium text-foreground">
-          Nombre completo
-        </label>
+        <label className="block text-sm font-medium text-foreground">Nombre completo</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={inputClasses}
-          placeholder="Nombre completo"
+          placeholder="Tu nombre real"
         />
       </div>
 
-      {/* Fecha de nacimiento */}
       <div>
-        <label className="block text-sm font-medium text-foreground">
-          Fecha de nacimiento
-        </label>
+        <label className="block text-sm font-medium text-foreground">Fecha de nacimiento</label>
         <input
           type="date"
           value={dob}
@@ -92,25 +106,8 @@ const PatientOnboardingStep = ({ onComplete, onBack }) => {
         />
       </div>
 
-      {/* Correo electrónico */}
       <div>
-        <label className="block text-sm font-medium text-foreground">
-          Correo electrónico
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={inputClasses}
-          placeholder="Ej: ejemplo@correo.com"
-        />
-      </div>
-
-      {/* Estado de Venezuela */}
-      <div>
-        <label className="block text-sm font-medium text-foreground">
-          Estado donde vives
-        </label>
+        <label className="block text-sm font-medium text-foreground">Estado donde vives</label>
         <select
           value={patientState}
           onChange={(e) => setPatientState(e.target.value)}
@@ -118,48 +115,28 @@ const PatientOnboardingStep = ({ onComplete, onBack }) => {
         >
           <option value="">Selecciona tu estado</option>
           {VZLA_STATES.map((st) => (
-            <option key={st.value} value={st.value}>
-              {st.label}
-            </option>
+            <option key={st.value} value={st.value}>{st.label}</option>
           ))}
         </select>
       </div>
 
-     
-
-      {/* Enfermedades crónicas */}
       <div>
-        <label className="block text-sm font-medium text-foreground">
-          Enfermedades crónicas
-        </label>
+        <label className="block text-sm font-medium text-foreground">Condiciones crónicas / Alergias</label>
         <input
           type="text"
           value={chronicConditions}
           onChange={(e) => setChronicConditions(e.target.value)}
           className={inputClasses}
-          placeholder="Ej: Hipertensión, diabetes..."
+          placeholder="Ej: Hipertensión, Penicilina..."
         />
       </div>
 
-    
-     
-
       <div className="flex gap-4 pt-2">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="w-full py-2"
-          type="button"
-        >
+        <Button variant="ghost" onClick={onBack} className="w-full py-2" type="button" disabled={loading}>
           Volver
         </Button>
-        <Button
-          variant="default"
-          onClick={handleSubmit}
-          className="w-full py-2"
-          type="button"
-        >
-          Continuar
+        <Button variant="default" onClick={handleSubmit} className="w-full py-2" type="button" disabled={loading}>
+          {loading ? "Guardando..." : "Finalizar Registro"}
         </Button>
       </div>
     </div>

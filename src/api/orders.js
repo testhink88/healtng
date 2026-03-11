@@ -1,36 +1,77 @@
-// src/api/orders.js
-import { createMockClient } from "./_mockBase";
+import { supabase } from "@/lib/supabase";
 
-const client = createMockClient("healtng_orders_v1");
-
+/**
+ * FETCH ORDERS
+ */
 export async function fetchOrders(filters = {}) {
   const { patient_id, provider_id, clinic_id, status } = filters;
-  return client.list((o) => {
-    let ok = true;
-    if (patient_id) ok = ok && String(o.patient_id) === String(patient_id);
-    if (provider_id) ok = ok && String(o.provider_id) === String(provider_id);
-    if (clinic_id) ok = ok && String(o.clinic_id) === String(clinic_id);
-    if (status) ok = ok && String(o.status || "") === String(status);
-    return ok;
-  });
+  
+  let query = supabase
+    .from('orders')
+    .select(`
+      *,
+      patient:profiles!orders_patient_id_fkey(id, full_name, email, metadata),
+      provider:profiles!orders_provider_id_fkey(id, full_name, email),
+      clinic:profiles!orders_clinic_id_fkey(id, full_name, email)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (patient_id) query = query.eq('patient_id', patient_id);
+  if (provider_id) query = query.eq('provider_id', provider_id);
+  if (clinic_id) query = query.eq('clinic_id', clinic_id);
+  if (status) query = query.eq('status', status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
 }
 
-export const getOrderById = (id) => client.get(id);
+/**
+ * GET ORDER BY ID
+ */
+export async function getOrderById(id) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, patient:profiles!orders_patient_id_fkey(*), provider:profiles!orders_provider_id_fkey(*)')
+    .eq('id', id)
+    .single();
 
-export const placeOrder = (payload) =>
-  client.create({
-    status: "pending",
-    ...payload,
-  });
+  if (error) throw error;
+  return data;
+}
 
-export const updateOrderStatus = (id, statusPatch) =>
-  client.update(id, { status: statusPatch });
+/**
+ * PLACE ORDER
+ */
+export async function placeOrder(payload) {
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([{ status: 'received', ...payload }])
+    .select()
+    .single();
 
-export const fetchOrdersByPatient = (patientId) =>
-  fetchOrders({ patient_id: patientId });
+  if (error) throw error;
+  return data;
+}
 
-export const fetchOrdersByProvider = (providerId) =>
-  fetchOrders({ provider_id: providerId });
+/**
+ * UPDATE ORDER STATUS
+ */
+export async function updateOrderStatus(id, statusPatch) {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status: statusPatch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
 
-export const fetchOrdersByClinic = (clinicId) =>
-  fetchOrders({ clinic_id: clinicId });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * HELPERS
+ */
+export const fetchOrdersByPatient = (patientId) => fetchOrders({ patient_id: patientId });
+export const fetchOrdersByProvider = (providerId) => fetchOrders({ provider_id: providerId });
+export const fetchOrdersByClinic = (clinicId) => fetchOrders({ clinic_id: clinicId });

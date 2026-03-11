@@ -4,13 +4,14 @@ import Button from "@/components/ui/Button";
 import Icon from "@/components/AppIcon";
 import { getProviderProfile } from "@/utils/providerProfile";
 
-// Importación de datos falsos para simular la farmacia
+// Importación de datos falsos para simular la farmacia (seguimos usando pedidos/ventas mock)
 import {
   seedPharmacyDemo,
-  getPharmacyAnalytics,
   getPharmacyProducts,
   getPharmacyOrders,
 } from "@/utils/mockDataPharmacy";
+import { getProducts, getLots } from "../utils/inventorySync";
+
 
 // Función para definir los módulos disponibles según el tipo de proveedor
 const modulesFor = (type = "mixto") => {
@@ -129,6 +130,7 @@ const ModuleCard = ({ cardKey, icon, title, desc, onClick, badge }) => (
 export default function ProviderDashboard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProducts: 0,
     lowStock: 0,
@@ -141,6 +143,39 @@ export default function ProviderDashboard() {
     salesToday: 0,
   });
 
+  const loadStats = async (p) => {
+    setLoading(true);
+    const normalizedType = String(p.businessType || "mixto").toLowerCase();
+
+    // Sombramos demo mock local solo si es necesario (para otros modales que aún no están en Supabase)
+    if (normalizedType === "producto") {
+      seedPharmacyDemo();
+    }
+
+    // KPIs desde Supabase
+    const syncedProducts = await getProducts();
+    const lots = await getLots();
+    
+    const lowStockCount = syncedProducts.filter(p => (p.stock_actual || 0) <= (p.stock_minimal || 0)).length;
+
+    // Pedidos (seguimos usando pharmacy.orders por ahora)
+    const allOrders = getPharmacyOrders();
+    const completed = allOrders.filter(
+      (o) => o.type === "sale" && o.status === "completed"
+    ).length;
+
+    setStats((s) => ({
+      ...s,
+      totalProducts: syncedProducts.length,
+      lowStock: lowStockCount,
+      pendingOrders: allOrders.filter((o) => o.status === "pending").length,
+      completedOrders: completed,
+      monthlyRevenue: 12450, 
+      salesToday: 450,
+    }));
+    setLoading(false);
+  };
+
   useEffect(() => {
     const p = getProviderProfile();
     if (!p) {
@@ -148,40 +183,15 @@ export default function ProviderDashboard() {
       return;
     }
 
-    const normalizedType = String(p.businessType || "mixto").toLowerCase();
-
-    // Si es proveedor de PRODUCTOS, sembramos demo de farmacia (si no existe).
-    if (normalizedType === "producto") {
-      seedPharmacyDemo();
-    }
-
     const normalized = {
       ...p,
-      businessType: normalizedType,
-      businessModules: p.businessModules || modulesFor(normalizedType),
+      businessType: String(p.businessType || "mixto").toLowerCase(),
+      businessModules: p.businessModules || modulesFor(String(p.businessType || "mixto").toLowerCase()),
     };
     setProfile(normalized);
-
-    // KPIs desde mocks SOLO para tipo "producto" (por ahora)
-    if (normalizedType === "producto") {
-      const a = getPharmacyAnalytics();
-      const prods = getPharmacyProducts();
-      const allOrders = getPharmacyOrders();
-      const completed = allOrders.filter(
-        (o) => o.type === "sale" && o.status === "completed"
-      ).length;
-
-      setStats((s) => ({
-        ...s,
-        totalProducts: a.totalProducts ?? prods.length ?? 0,
-        lowStock: a.lowStock ?? 0,
-        pendingOrders: allOrders.filter((o) => o.status === "pending").length,
-        completedOrders: completed,
-        monthlyRevenue: Math.round((a.salesToday || 0) * 30),
-        salesToday: a.salesToday || 0,
-      }));
-    }
+    loadStats(normalized);
   }, [navigate]);
+
 
   if (!profile) return null;
 
@@ -196,8 +206,8 @@ export default function ProviderDashboard() {
             <h1 className="text-3xl font-bold text-foreground mb-2">
               ¡Bienvenido a tu Panel de Proveedor!
             </h1>
-            <p className="text-lg text-muted-foreground">
-              Tipo de negocio: {typeLabel(profile.businessType)}
+            <p className="text-lg text-muted-foreground mr-4">
+               {loading ? "Actualizando métricas..." : "Dashboard sincronizado."}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {businessDescription(profile.businessType)}
@@ -225,7 +235,7 @@ export default function ProviderDashboard() {
         {mods.inventario && (
           <KPICard
             title="Total Productos"
-            value={stats.totalProducts}
+            value={loading ? "..." : stats.totalProducts}
             icon="Package"
             change={2.5}
             trend="up"
@@ -255,7 +265,7 @@ export default function ProviderDashboard() {
         {mods.inventario && (
           <KPICard
             title="Stock Bajo"
-            value={stats.lowStock}
+            value={loading ? "..." : stats.lowStock}
             icon="AlertTriangle"
             change={-5}
             trend="down"

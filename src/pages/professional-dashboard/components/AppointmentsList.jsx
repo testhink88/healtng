@@ -2,7 +2,7 @@ import React from 'react';
 import Icon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 
-const AppointmentsList = ({ appointments = [], dateLabel }) => {
+const AppointmentsList = ({ appointments = [], dateLabel, onEditAppointment }) => {
   
   // 1. LÓGICA DE COLORES FLAT (Incluye estado de preparación)
   const getStatusStyles = (a) => {
@@ -102,13 +102,23 @@ const AppointmentsList = ({ appointments = [], dateLabel }) => {
 
             {/* Derecha: Estado Dinámico */}
             <div className="shrink-0 flex flex-col items-end gap-2">
-              <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-normal uppercase tracking-widest border transition-all ${getStatusStyles(a)}`}>
-                {a.intakeStatus?.isReady ? "Listo para Consulta" : 
-                 a?.status === 'confirmed' ? 'Confirmada' :
-                 a?.status === 'pending' ? 'Pendiente' :
-                 (a?.status === 'in-progress' || a?.status === 'inprogress') ? 'En Progreso' :
-                 a?.status === 'completed' ? 'Completada' : 'Cancelada'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-normal uppercase tracking-widest border transition-all ${getStatusStyles(a)}`}>
+                  {a.intakeStatus?.isReady ? "Listo para Consulta" : 
+                   a?.status === 'confirmed' ? 'Confirmada' :
+                   a?.status === 'pending' ? 'Pendiente' :
+                   (a?.status === 'in-progress' || a?.status === 'inprogress') ? 'En Progreso' :
+                   a?.status === 'completed' ? 'Completada' : 'Cancelada'}
+                </span>
+                
+                <button 
+                  onClick={() => onEditAppointment && onEditAppointment(a.original || a)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#0E39B1] transition-all"
+                  title="Reprogramar"
+                >
+                  <Icon name="Edit2" size={14} />
+                </button>
+              </div>
               
               <button 
                 onClick={() => goToPatientProfile(a)}

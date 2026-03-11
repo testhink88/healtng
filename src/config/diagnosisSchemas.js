@@ -118,50 +118,33 @@ export const INTERNAL_COMMON_OPTIONS = {
 // ==========================================
 export const BASE_DIAGNOSIS_SECTIONS = [
   {
-    key: "anamnesis",
-    label: "1. Anamnesis y Motivo",
+    key: "evolution",
+    label: "Nota de Evolución y Hallazgos",
     fields: [
-      { key: "chief_complaint", label: "Motivo de Consulta", type: "text", required: true },
-      { key: "history_disease", label: "Enfermedad Actual", type: "textarea", rows: 3 },
-
-      // Antecedentes toggles (Obligatorio)
-      {
-        key: "surgical_history",
-        label: "¿Antecedentes Quirúrgicos?",
-        type: "antecedente_toggle",
+      { 
+        key: "clinical_note", 
+        label: "Evolución Médica", 
+        type: "textarea", 
+        placeholder: "Describe libremente la evolución del paciente, síntomas y hallazgos físicos. Usa el micrófono para dictado rápido con IA...",
+        rows: 15,
         fullWidth: true,
+        required: true
       },
-      {
-        key: "medical_history",
-        label: "¿Antecedentes Médicos / Patológicos?",
-        type: "antecedente_toggle",
-        fullWidth: true,
-      },
-    ],
+    ]
   },
-  {
-    key: "exam_vitals",
-    label: "2. Signos Vitales y Físico General",
-    fields: [
-      { key: "bp_systolic", label: "T.A. Sistólica", type: "number", unit: "mmHg", gridSpan: 1 },
-      { key: "bp_diastolic", label: "T.A. Diastólica", type: "number", unit: "mmHg", gridSpan: 1 },
-      { key: "heart_rate", label: "Frecuencia Cardíaca", type: "number", unit: "lpm", gridSpan: 1 },
-      { key: "temp", label: "Temperatura", type: "number", unit: "°C", gridSpan: 1 },
-      { key: "spo2", label: "Saturación O₂", type: "number", unit: "%", gridSpan: 1 },
-      { key: "weight", label: "Peso", type: "number", unit: "kg", gridSpan: 1 },
-      { key: "general_exam", label: "Examen Físico General", type: "textarea", placeholder: "Piel, mucosas, hidratación..." },
-    ],
-  },
-
-  // Secciones específicas se insertan antes de diagnosis_plan
-
   {
     key: "diagnosis_plan",
-    label: "4. Diagnóstico y Plan",
+    label: "Conclusión y Tratamiento",
     fields: [
-      { key: "main_diagnosis_cie10", label: "Diagnóstico CIE-10", type: "cie10_search", required: true },
-      { key: "analysis", label: "Análisis Médico", type: "textarea" },
-      { key: "plan", label: "Plan Terapéutico", type: "textarea", rows: 3 },
+      { key: "main_diagnosis_cie10", label: "Diagnóstico Principal (CIE-10)", type: "cie10_search", required: true },
+      { 
+        key: "treatment_plan", 
+        label: "Indicaciones y Plan", 
+        type: "textarea", 
+        rows: 4, 
+        placeholder: "Medicamentos, dosis, estudios solicitados...",
+        fullWidth: true
+      },
     ],
   },
 ];
@@ -169,7 +152,7 @@ export const BASE_DIAGNOSIS_SECTIONS = [
 // Inserta secciones específicas antes de diagnosis_plan
 const combineSchemas = (name, specificSections = []) => {
   const finalSections = [...BASE_DIAGNOSIS_SECTIONS];
-  finalSections.splice(2, 0, ...specificSections);
+  finalSections.splice(1, 0, ...specificSections);
   return { name, sections: finalSections };
 };
 
@@ -222,13 +205,7 @@ const TNM_SECTION = (label = "Clasificación Tumoral (TNM)") => ({
 export const SPECIALTY_DIAGNOSIS_SCHEMAS = {
   // --- GRUPO 1: CLÍNICO GENERAL ---
   "Medicina Interna": STANDARD_CLINICAL("Medicina Interna"),
-  "Medicina General": combineSchemas("Medicina General", [
-    {
-      key: "gen_focus",
-      label: "3. Revisión por Sistemas",
-      fields: [{ key: "segmentary", label: "Examen Segmentario", type: "textarea" }],
-    },
-  ]),
+  "Medicina General": combineSchemas("Medicina General"),
   "Medicina Familiar": STANDARD_CLINICAL("Medicina Familiar"),
   "Geriatría": combineSchemas("Geriatría", [
     {

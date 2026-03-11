@@ -3,6 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "@/components/ui/Header";
 import Sidebar from "@/components/ui/Sidebar";
 import GlobalSearch from "@/components/ui/GlobalSearch";
+import { useAuth } from "@/context/AuthContext";
+import { fetchAppointments } from "@/api/appointments";
+import { fetchTreatments } from "@/api/treatments";
+import { supabase } from "@/lib/supabase";
 
 // Bloques ya existentes en tu proyecto (no se tocan sus imports)
 import QuickActionsGrid from "@/pages/patient-dashboard/components/QuickActionsGrid";
@@ -14,7 +18,7 @@ import HealthProfileSummary from "@/pages/patient-dashboard/components/HealthPro
 const formatDate = (iso) => {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString("es-ES", {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -69,7 +73,15 @@ const WelcomeBanner = ({ patientName = "María", city = "Caracas", notifications
       <h2 className="text-xl md:text-2xl font-semibold">Hola, {patientName}</h2>
       <p className="text-white/90 text-sm mt-1">{dateStr}</p>
 
-      
+      {/* Carrusel de notificaciones */}
+      {notifications.length > 0 && (
+        <div className="mt-6 -mx-6 px-6 overflow-x-auto no-scrollbar snap-x flex">
+          {notifications.map((n) => (
+            <NotificationChip key={n.id} {...n} />
+          ))}
+        </div>
+      )}
+
       {/* Consejo breve (sutil) */}
       <div className="mt-4 rounded-2xl bg-white/10 text-white/90 p-4">
         <div className="flex items-center gap-2">
@@ -146,12 +158,15 @@ const DoctorSearchPanel = ({ onSubmit }) => {
 // Página principal
 // ======================================================
 const PatientDashboard = () => {
+  const { profile } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [nextAppointment, setNextAppointment] = useState(null);
+  const [recentExamsData, setRecentExamsData] = useState([]);
 
-  // Mock perfil y notificaciones
-  const patientProfile = { name: "María", memberSince: "2022" };
+  // Notificaciones (Mock por ahora, pueden dinamizarse luego)
   const notifications = useMemo(
     () => [
       {
@@ -170,32 +185,53 @@ const PatientDashboard = () => {
         message: "Mañana a las 10:00 AM con el Dr. Mendoza.",
         timeAgo: "ayer",
         read: false,
-      },
-      {
-        id: 3,
-        icon: "🧪",
-        title: "Resultados listos",
-        message: "Tu hemograma completo ya está disponible.",
-        timeAgo: "esta semana",
-        read: true,
-      },
+      }
     ],
     []
   );
 
-  const recentExams = useMemo(
-    () => [
-      { id: 1, name: "Hemograma Completo", status: "completed" },
-      { id: 2, name: "Radiografía de Tórax", status: "processing" },
-      { id: 3, name: "Perfil Lipídico", status: "pending" },
-    ],
-    []
-  );
+  // Perfil dinámico desde Supabase
+  const patientName = profile?.full_name || "Paciente";
+  
+  const healthData = useMemo(() => {
+     return profile?.metadata?.health_profile || {
+        bloodType: "—",
+        allergies: [],
+        chronicConditions: [],
+        emergencyContacts: [],
+        lastUpdate: profile?.updated_at || new Date().toISOString()
+     };
+  }, [profile]);
 
   useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 700);
-    return () => clearTimeout(t);
-  }, []);
+    if (!profile?.id) return;
+
+    const loadDashboardData = async () => {
+      try {
+        // 1. Cargar Próxima Cita
+        const now = new Date().toISOString().split('T')[0];
+        const appointments = await fetchAppointments({ 
+          patient_id: profile.id, 
+          from: now,
+          status: 'confirmed'
+        });
+        if (appointments && appointments.length > 0) {
+          setNextAppointment(appointments[0]);
+        }
+
+        // 2. Cargar Exámenes (Treatments tipo 'Estudio' o últimos tratamientos)
+        const treatments = await fetchTreatments({ patient_id: profile.id });
+        setRecentExamsData(treatments.slice(0, 4)); // Tomamos los 4 más recientes
+        
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [profile?.id]);
 
   if (isLoading) {
     return (
@@ -245,7 +281,7 @@ const PatientDashboard = () => {
           </div>
 
           {/* Banner azul con carrusel de notificaciones */}
-          <WelcomeBanner patientName={patientProfile.name} notifications={notifications} />
+          <WelcomeBanner patientName={patientName} notifications={notifications} />
 
           {/* Buscador/CTA */}
           <div className="mt-6">
@@ -272,13 +308,13 @@ const PatientDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
             {/* Columna principal */}
             <div className="lg:col-span-8 space-y-6">
-              <NextAppointment />
-              <RecentExams />
+              <NextAppointment appointmentData={nextAppointment} />
+              <RecentExams examsData={recentExamsData} />
             </div>
 
             {/* Lateral derecho */}
             <div className="lg:col-span-4 space-y-6">
-              <HealthProfileSummary />
+              <HealthProfileSummary healthData={healthData} />
             </div>
           </div>
         </div>

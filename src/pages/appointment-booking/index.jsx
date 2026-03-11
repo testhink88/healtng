@@ -14,6 +14,10 @@ import Sidebar from '@/components/ui/Sidebar';
 import Icon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useAuth } from '@/context/AuthContext';
+import { fetchAppointments, createAppointment, updateAppointment } from '@/api/appointments';
+import { fetchPatients } from '@/api/patient/patients';
+import { supabase } from '@/lib/supabase';
 
 // util
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -72,7 +76,8 @@ const AppointmentBooking = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ====== ROL ======
+  // ====== AUTH ======
+  const { profile } = useAuth();
   const [userRole] = useState(() => localStorage.getItem('userRole') || 'doctor');
   const isProfessional = ['doctor', 'specialist', 'clinic_admin', 'professional', 'clinic'].includes(userRole);
 
@@ -187,57 +192,69 @@ const AppointmentBooking = () => {
   const [weekRef, setWeekRef] = useState(startOfWeek(new Date()));
   const [selectedDay, setSelectedDay] = useState(new Date());
 
-  // Config de agenda por profesional
-  const pros = [
+  const pros = useMemo(() => [
     {
-      id: 'prof1',
-      name: 'Dr. Carlos Mendoza',
-      specialty: 'Cardiología',
+      id: profile?.id || 'prof1',
+      name: profile?.full_name || 'Médico',
+      specialty: profile?.metadata?.specialty_label || 'Especialista',
       validated: true,
       available: true,
-      workHours: { start: 8, lunch: [12, 14], end: 18 }, // 08-12 y 14-18
-      closedWeekdays: [0], // 0=Domingo
-      blockedSlots: {
-        // ejemplo: '2025-08-27': ['11:00', '16:00']
-      },
+      workHours: { start: 8, lunch: [12, 14], end: 18 },
+      closedWeekdays: [0],
+      blockedSlots: {},
     },
-  ];
+  ], [profile]);
 
-  const [selectedPro] = useState(pros[0].id);
+  const selectedPro = profile?.id || 'prof1';
 
-  // Pacientes (mock)
-  const [patients, setPatients] = useState([
-    { id: 'p-1', name: 'Juan Pérez', phone: '+58 412-1112233' },
-    { id: 'p-2', name: 'María López', phone: '+58 424-2223344' },
-    { id: 'p-3', name: 'Ana Martínez', phone: '+58 414-3334455' },
-    { id: 'p-4', name: 'Carlos Rodríguez', phone: '+58 416-7778899' },
-    { id: 'p-5', name: 'Carmen Silva', phone: '+58 426-2223344' },
-    { id: 'p-6', name: 'Luis Romero', phone: '+58 416-9997788' },
-    { id: 'p-7', name: 'Sofía Ramírez', phone: '+58 412-3331122' },
-    { id: 'p-8', name: 'Ignacio Mendoza', phone: '+58 424-2228899' },
-    { id: 'p-9', name: 'Patricia Salazar', phone: '+58 416-1122334' },
-    { id: 'p-10', name: 'Roberto Fernández', phone: '+58 426-7788991' },
-    { id: 'p-11', name: 'Elena Martínez', phone: '+58 416-6655443' },
-    { id: 'p-12', name: 'Javier Rojas', phone: '+58 412-9988776' },
-  ]);
+  // Pacientes (reales desde Supabase)
+  const [patients, setPatients] = useState([]);
 
-  // Citas (mock base)
-  const [proAppointments, setProAppointments] = useState([
-    {
-      id: 'apt-1',
-      date: todayISO(),
-      time: '10:00',
-      duration: 30,
-      status: 'confirmed',
-      professionalId: 'prof1',
-      patient: { id: 'p-1', name: 'Juan Pérez', phone: '+58 412-1112233' },
-      reason: 'Consulta Cardiológica',
-      payMethod: 'cash',
-      amount: 20,
-      commissionPct: 0.1,
-      commission: 2,
-    },
-  ]);
+  // Citas (reales de Supabase)
+  const [proAppointments, setProAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadAppointments = async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    try {
+      // Cargamos citas del mes alrededor de la semana visible para optimizar
+      const data = await fetchAppointments({
+        professional_id: profile.id
+      });
+      
+      const mapped = (data || []).map(a => ({
+        ...a,
+        time: a.time ? a.time.slice(0, 5) : "--:--",
+        professionalId: a.professional_id, // para compatibilidad con filtros antiguos
+        patient: { 
+          id: a.patient_id, 
+          name: a.patient_name, 
+          phone: a.metadata?.phone || "" 
+        },
+        payMethod: a.metadata?.payMethod || "none",
+        commission: a.metadata?.commission || 0
+      }));
+
+      setProAppointments(mapped);
+
+      // Cargar también lista de pacientes reales vinculados
+      const pts = await fetchPatients({ professional_id: profile.id });
+      setPatients((pts || []).map(p => ({
+        id: p.id,
+        name: p.full_name,
+        phone: p.metadata?.phone || ""
+      })));
+    } catch (err) {
+      console.error("Error loading appointments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAppointments();
+  }, [profile?.id, weekRef]);
 
   /* ---------- SEED: más citas por cada semana (solo calendario) --------- */
   const seedRandom = (seed) => {
@@ -289,18 +306,9 @@ const AppointmentBooking = () => {
     return out;
   };
 
-  // añade (sin borrar las existentes) las citas de la semana visible
+  // Ya no generamos citas aleatorias
   useEffect(() => {
-    const generated = generateWeekAppointments(weekRef);
-    setProAppointments((prev) => {
-      const existing = new Set(prev.map((a) => a.id));
-      const merged = [...prev];
-      generated.forEach((a) => {
-        if (!existing.has(a.id)) merged.push(a);
-      });
-      return merged.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // loadAppointments() se encarga de esto
   }, [weekRef]);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekRef, i)), [weekRef]);
@@ -341,8 +349,8 @@ const AppointmentBooking = () => {
   // citas por celda
   const aptsByDayHour = (dayObj, hour) => {
     const dk = toDateKey(dayObj);
-    const hh = hourStr(hour);
-    return proAppointments.filter((a) => a.date === dk && a.time === hh && a.professionalId === selectedPro);
+    const prefix = String(hour).padStart(2, '0') + ':';
+    return proAppointments.filter((a) => a.date === dk && a.time.startsWith(prefix) && a.professionalId === selectedPro);
   };
 
   // Estado dominante de la celda para colorear fondo
@@ -432,47 +440,51 @@ const AppointmentBooking = () => {
     setIsNewAppointmentOpen(true);
   };
 
-  const saveAppointment = () => {
-    let patientId = modalForm.patientId;
-    let patientName = '';
-    let patientPhone = '';
+  const saveAppointment = async () => {
+    setIsProcessing(true);
+    try {
+      let patientId = modalForm.patientId;
+      let patientName = '';
+      let patientPhone = '';
 
-    if (modalForm.isNewPatient) {
-      const newId = `p-${Date.now()}`;
-      const newP = {
-        id: newId,
-        name: modalForm.newPatientName.trim() || 'Paciente',
-        phone: modalForm.newPatientPhone.trim(),
+      if (modalForm.isNewPatient) {
+        // En demo, no creamos el perfil de paciente real aún (requiere auth.signUp)
+        patientName = modalForm.newPatientName.trim() || 'Paciente';
+        patientPhone = modalForm.newPatientPhone.trim();
+      } else {
+        const p = patients.find((x) => x.id === modalForm.patientId);
+        patientName = p?.name || 'Paciente';
+        patientPhone = p?.phone || '';
+      }
+
+      const commission = (Number(modalForm.amount) || 0) * (Number(modalForm.commissionPct) || 0);
+
+      const payload = {
+        date: modalForm.date,
+        time: modalForm.time || '08:00',
+        duration: Number(modalForm.duration) || 30,
+        status: modalForm.status,
+        professional_id: profile?.id,
+        patient_id: patientId || null,
+        patient_name: patientName,
+        reason: modalForm.reason || 'Consulta',
+        amount: Number(modalForm.amount) || 0,
+        metadata: {
+          phone: patientPhone,
+          payMethod: modalForm.payMethod,
+          commissionPct: Number(modalForm.commissionPct) || 0,
+          commission
+        }
       };
-      setPatients((prev) => [...prev, newP]);
-      patientId = newId;
-      patientName = newP.name;
-      patientPhone = newP.phone;
-    } else {
-      const p = patients.find((x) => x.id === modalForm.patientId);
-      patientName = p?.name || 'Paciente';
-      patientPhone = p?.phone || '';
+
+      await createAppointment(payload);
+      await loadAppointments();
+      setIsNewAppointmentOpen(false);
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsProcessing(false);
     }
-
-    const commission = (Number(modalForm.amount) || 0) * (Number(modalForm.commissionPct) || 0);
-
-    const newApt = {
-      id: `apt-${Date.now()}`,
-      date: modalForm.date,
-      time: modalForm.time || '08:00',
-      duration: Number(modalForm.duration) || 30,
-      status: modalForm.status,
-      professionalId: selectedPro,
-      patient: { id: patientId, name: patientName, phone: patientPhone },
-      reason: modalForm.reason || 'Consulta',
-      payMethod: modalForm.payMethod,
-      amount: Number(modalForm.amount) || 0,
-      commissionPct: Number(modalForm.commissionPct) || 0,
-      commission,
-    };
-
-    setProAppointments((prev) => [...prev, newApt]);
-    setIsNewAppointmentOpen(false);
   };
 
   /* ===================== KPIs / ESTADÍSTICAS ===================== */
@@ -709,20 +721,26 @@ const AppointmentBooking = () => {
                                     {items.map((a) => (
                                       <button
                                         key={a.id}
-                                        className={`w-full text-left text-[11px] px-2 py-1 rounded border truncate ${STATUS_STYLES[a.status] || ''}`}
+                                        className={`w-full text-left text-[10px] px-2 py-1.5 rounded border leading-tight transition-all hover:brightness-95 ${STATUS_STYLES[a.status] || ''}`}
                                         title={`${a.reason || 'Consulta'} · ${a.patient?.name || ''}`}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           navigate(`/patients/${a.patient.id}`);
                                         }}
                                       >
-                                        {(a.patient?.name || 'Paciente').slice(0, 22)} ·{' '}
-                                        {(a.reason || 'Consulta').slice(0, 18)}
-                                        {a.payMethod && a.payMethod !== 'none' && (
-                                          <span className={`ml-2 inline-block border px-1 rounded ${PAY_BADGE(a.payMethod)}`}>
-                                            {a.payMethod.toUpperCase()}
+                                        <div className="font-bold truncate">
+                                          {a.patient?.name || 'Paciente'}
+                                        </div>
+                                        <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
+                                          <span className="truncate opacity-80 flex-1">
+                                            {a.reason || 'Consulta'}
                                           </span>
-                                        )}
+                                          {a.payMethod && a.payMethod !== 'none' && (
+                                            <span className={`px-1 rounded-[2px] border text-[8px] uppercase shrink-0 ${PAY_BADGE(a.payMethod)}`}>
+                                              {a.payMethod}
+                                            </span>
+                                          )}
+                                        </div>
                                       </button>
                                     ))}
                                   </div>
@@ -956,7 +974,7 @@ const AppointmentBooking = () => {
                         <div>
                           <label className="text-sm font-medium">Paciente *</label>
                           <select
-                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-background"
+                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-muted text-foreground"
                             value={modalForm.patientId}
                             onChange={(e) => setModalForm((f) => ({ ...f, patientId: e.target.value }))}
                             disabled={modalForm.isNewPatient}
@@ -1043,7 +1061,7 @@ const AppointmentBooking = () => {
                           <label className="text-sm font-medium">Hora *</label>
                           <input
                             type="time"
-                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-background"
+                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-muted text-foreground"
                             value={modalForm.time}
                             onChange={(e) => setModalForm((f) => ({ ...f, time: e.target.value }))}
                           />
@@ -1062,7 +1080,7 @@ const AppointmentBooking = () => {
                         <div>
                           <label className="text-sm font-medium">Estado</label>
                           <select
-                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-background"
+                            className="mt-1 w-full border border-border rounded-md px-3 py-2 bg-muted text-foreground"
                             value={modalForm.status}
                             onChange={(e) => setModalForm((f) => ({ ...f, status: e.target.value }))}
                           >

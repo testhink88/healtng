@@ -1,7 +1,7 @@
 import React from 'react';
 import Icon from '@/components/AppIcon';
 
-const ParaclinicalUploader = ({ files = [], onChange }) => {
+const ParaclinicalUploader = ({ files = [], onChange, onPreview }) => {
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files).map(file => ({
       id: `file-${Date.now()}-${Math.random()}`,
@@ -40,19 +40,24 @@ const ParaclinicalUploader = ({ files = [], onChange }) => {
       {files.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {files.map((file) => (
-            <div key={file.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <Icon name={file.type.includes('pdf') ? 'FileText' : 'Image'} size={18} className="text-[#0E39B1] shrink-0" />
+            <div key={file.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+              <div 
+                className="flex items-center gap-3 overflow-hidden cursor-pointer flex-1"
+                onClick={() => onPreview && onPreview(file)}
+              >
+                <div className="p-2 bg-gray-50 rounded-lg text-[#0E39B1]">
+                   <Icon name={file.type?.includes('pdf') ? 'FileText' : 'Image'} size={20} />
+                </div>
                 <div className="truncate">
-                  <p className="text-xs font-normal text-gray-900 truncate">{file.name}</p>
+                  <p className="text-xs font-bold text-gray-800 truncate hover:text-[#0E39B1] transition-colors">{file.name}</p>
                   <p className="text-[9px] text-gray-400 font-normal uppercase">{file.size}</p>
                 </div>
               </div>
               <button 
-                onClick={() => removeFile(file.id)}
-                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
+                className="text-gray-300 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
               >
-                <Icon name="X" size={14} />
+                <Icon name="Trash2" size={14} />
               </button>
             </div>
           ))}

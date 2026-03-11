@@ -4,36 +4,16 @@ import { useNavigate } from "react-router-dom"; // 👈 NUEVO
 import Icon from "@/components/AppIcon";
 import Button from "@/components/ui/Button";
 
-const HealthProfileSummary = ({ className = "" }) => {
-  const navigate = useNavigate(); // 👈 NUEVO
+const HealthProfileSummary = ({ className = "", healthData }) => {
+  const navigate = useNavigate();
 
-  const [healthProfile] = useState({
-    allergies: [
-      { id: 1, name: "Penicilina", severity: "high", type: "medication" },
-      { id: 2, name: "Mariscos", severity: "medium", type: "food" },
-      { id: 3, name: "Polen", severity: "low", type: "environmental" },
-    ],
-    chronicConditions: [
-      { id: 1, name: "Hipertensión Arterial", controlled: true, since: "2020" },
-      { id: 2, name: "Diabetes Tipo 2", controlled: true, since: "2018" },
-    ],
-    emergencyContacts: [
-      {
-        id: 1,
-        name: "Juan González",
-        relationship: "Esposo",
-        phone: "+58 414-123-4567",
-      },
-      {
-        id: 2,
-        name: "Ana González",
-        relationship: "Hija",
-        phone: "+58 424-987-6543",
-      },
-    ],
-    bloodType: "O+",
-    lastUpdate: "2025-07-31",
-  });
+  const healthProfile = healthData || {
+    allergies: [],
+    chronicConditions: [],
+    emergencyContacts: [],
+    bloodType: "—",
+    lastUpdate: new Date().toISOString(),
+  };
 
   const [expandedSection, setExpandedSection] = useState(null);
 

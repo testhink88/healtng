@@ -1,10 +1,11 @@
-// src/pages/login/components/DoctorOnboardingStep.jsx
 import React, { useState } from "react";
 import Button from "@/components/ui/Button";
 import SpecialtyAutocomplete from "@/components/inputs/SpecialtyAutocomplete";
 import { useProfessional } from "@/context/ProfessionalContext";
+import { supabase } from "@/lib/supabase";
 
-// Lista de Estados de Venezuela
+import { useAuth } from "@/context/AuthContext";
+
 const VENEZUELA_STATES = [
   "Amazonas", "Anzoátegui", "Apure", "Aragua", "Barinas", "Bolívar",
   "Carabobo", "Cojedes", "Delta Amacuro", "Distrito Capital", "Falcón",
@@ -13,16 +14,16 @@ const VENEZUELA_STATES = [
   "Yaracuy", "Zulia"
 ];
 
-// Estilos unificados para asegurar fondo blanco y texto oscuro
 const inputStyle = "w-full p-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent";
 
 const DoctorOnboardingStep = ({ onComplete, onBack }) => {
+  const { fetchProfile } = useAuth();
   const { login } = useProfessional();
   
   const [formData, setFormData] = useState({
     name: "",
     specialty_id: "",
-    state: "", // Cambiamos 'city' por 'state'
+    state: "",
     licenseNumber: "",
   });
   
@@ -30,7 +31,6 @@ const DoctorOnboardingStep = ({ onComplete, onBack }) => {
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
-    // Validaciones
     if (!formData.specialty_id) return alert("Debes seleccionar una especialidad válida");
     if (!formData.name || !formData.state || !formData.licenseNumber) {
       return alert("Todos los campos son obligatorios.");
@@ -40,15 +40,40 @@ const DoctorOnboardingStep = ({ onComplete, onBack }) => {
     setError("");
 
     try {
-      const payload = { ...formData, id: "doc_" + Date.now() };
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sesión no encontrada");
 
-      // Guardar sesión globalmente
-      login(payload);
+      const metadata = {
+        specialty_id: formData.specialty_id,
+        state: formData.state,
+        license: formData.licenseNumber
+      };
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          full_name: formData.name,
+          metadata: metadata,
+          onboarding_completed: true,
+          role: 'doctor' // Normalizado
+        });
+
+      if (updateError) throw updateError;
+
+      // Sincronizar contexto de Auth para que RoleGuard no rebote
+      if (fetchProfile) await fetchProfile(user.id);
+
+      // Sync local context for UI
+      login({ ...formData, id: user.id });
       
-      // Continuar flujo
-      onComplete(payload);  
+      // Pequeño delay para asegurar que el estado se propague
+      setTimeout(() => {
+        onComplete();
+      }, 600);
     } catch (err) {
-      setError("Ocurrió un error al guardar los datos. Intenta nuevamente.");
+      setError("Error al guardar en Supabase: " + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -57,12 +82,8 @@ const DoctorOnboardingStep = ({ onComplete, onBack }) => {
   return (
     <div className="space-y-5">
       <div className="text-center space-y-2">
-         <h3 className="text-sm text-gray-600">
-           Configura tu perfil profesional
-         </h3>
+         <h3 className="text-sm text-gray-600">Configura tu perfil profesional</h3>
       </div>
-
-      {/* Nombre Completo */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
         <input
@@ -73,43 +94,23 @@ const DoctorOnboardingStep = ({ onComplete, onBack }) => {
           placeholder="Nombre y apellido"
         />
       </div>
-
-      {/* Especialidad (Autocomplete) */}
       <div className="z-50 relative">
         <label className="block text-sm font-medium text-gray-700 mb-1">Especialidad principal</label>
-        {/* Nota: Asegúrate que SpecialtyAutocomplete acepte className o tenga estilos compatibles. 
-            Si se ve oscuro, tendrás que editar ese componente también. */}
-        <SpecialtyAutocomplete 
-          onSelect={(id) => setFormData({ ...formData, specialty_id: id })} 
-        />
+        <SpecialtyAutocomplete onSelect={(id) => setFormData({ ...formData, specialty_id: id })} />
       </div>
-
-      {/* Selector de Estados de Venezuela */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Estado (Ubicación)</label>
-        <div className="relative">
-          <select
-            value={formData.state}
-            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-            className={`${inputStyle} appearance-none`} // appearance-none para estilizar mejor
-          >
-            <option value="" disabled>Selecciona un estado</option>
-            {VENEZUELA_STATES.map((estado) => (
-              <option key={estado} value={estado}>
-                {estado}
-              </option>
-            ))}
-          </select>
-          {/* Flecha del select personalizada (opcional para mejor estética) */}
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-            </svg>
-          </div>
-        </div>
+        <select
+          value={formData.state}
+          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+          className={inputStyle}
+        >
+          <option value="" disabled>Selecciona un estado</option>
+          {VENEZUELA_STATES.map((estado) => (
+            <option key={estado} value={estado}>{estado}</option>
+          ))}
+        </select>
       </div>
-
-      {/* Número de colegiado */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Número de colegiado</label>
         <input
@@ -120,27 +121,10 @@ const DoctorOnboardingStep = ({ onComplete, onBack }) => {
           placeholder="Ej: CM-12345"
         />
       </div>
-
-      {/* Mensaje de error */}
       {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded">{error}</p>}
-
-      {/* Botones de navegación */}
-      <div className="flex gap-4 pt-4 border-t border-gray-100 mt-4">
-        <Button 
-          variant="ghost" 
-          onClick={onBack} 
-          className="w-full py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900" 
-          type="button"
-        >
-          Volver
-        </Button>
-        <Button 
-          variant="default" 
-          onClick={handleSubmit} 
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm" 
-          type="button" 
-          disabled={isSubmitting}
-        >
+      <div className="flex gap-4 pt-2 border-t mt-4">
+        <Button variant="ghost" onClick={onBack} className="w-full py-2" type="button" disabled={isSubmitting}>Volver</Button>
+        <Button variant="default" onClick={handleSubmit} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white" type="button" disabled={isSubmitting}>
           {isSubmitting ? "Guardando..." : "Continuar"}
         </Button>
       </div>

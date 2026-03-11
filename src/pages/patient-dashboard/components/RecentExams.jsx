@@ -2,13 +2,20 @@ import React, { useState } from 'react';
 import Icon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 
-const RecentExams = ({ className = '' }) => {
-  const [exams] = useState([
-    { id: 1, name: 'Hemograma Completo', date: '2025-08-15', doctor: 'Dr. Ana Rodríguez', status: 'completed', results: 'Valores normales', category: 'Hematología', urgent: false, downloadUrl: '/reports/hemograma-150825.pdf' },
-    { id: 2, name: 'Electrocardiograma', date: '2025-08-10', doctor: 'Dr. Carlos Mendoza', status: 'completed', results: 'Ritmo sinusal normal', category: 'Cardiología', urgent: false, downloadUrl: '/reports/ecg-100825.pdf' },
-    { id: 3, name: 'Perfil Lipídico', date: '2025-08-08', doctor: 'Dr. Ana Rodríguez', status: 'pending', results: 'Pendiente de resultados', category: 'Bioquímica', urgent: false, downloadUrl: null },
-    { id: 4, name: 'Radiografía de Tórax', date: '2025-08-05', doctor: 'Dr. Luis Martínez', status: 'completed', results: 'Sin alteraciones significativas', category: 'Radiología', urgent: false, downloadUrl: '/reports/rx-torax-050825.pdf' }
-  ]);
+const RecentExams = ({ className = '', examsData }) => {
+  const exams = (examsData || [])
+    .filter(item => item !== null && typeof item === 'object')
+    .map(item => ({
+      id: item.id,
+      name: item.name || 'Estudio / Tratamiento',
+      date: item.start_date || item.created_at,
+      doctor: item.doctor?.full_name || 'Médico',
+      status: item.status === 'completed' ? 'completed' : 'pending',
+      results: item.instructions || 'Ver detalles del reporte',
+      category: item.type || 'General',
+      urgent: false,
+      downloadUrl: item.metadata?.report_url || null
+    }));
 
   const [expandedExam, setExpandedExam] = useState(null);
 

@@ -2,6 +2,7 @@ import React from "react";
 import { SPECIALTY_DIAGNOSIS_SCHEMAS } from "@/config/diagnosisSchemas";
 import DiagnosisSearch from "./DiagnosisSearch";
 import Icon from "@/components/AppIcon";
+import VoiceRecorderButton from "./VoiceRecorderButton";
 
 const SpecialtyDiagnosisCore = ({ specialtyCode, diagnosisData, setDiagnosisData }) => {
   const schema = SPECIALTY_DIAGNOSIS_SCHEMAS[specialtyCode] || SPECIALTY_DIAGNOSIS_SCHEMAS["GEN"];
@@ -58,7 +59,7 @@ const SpecialtyDiagnosisCore = ({ specialtyCode, diagnosisData, setDiagnosisData
 };
 
 // --- RENDERIZADOR POTENCIADO CON LÓGICA CONDICIONAL ---
-function renderField(field, currentValue, onChange) {
+function renderField(field, currentValue, onChange, extraActions = null) {
   // Manejo de valores nulos/undefined por seguridad
   const value = currentValue !== undefined && currentValue !== null ? currentValue : "";
   const baseClasses = "w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-normal text-gray-900 focus:ring-1 focus:ring-[#0E39B1] focus:border-[#0E39B1] outline-none transition-all placeholder:text-gray-300";
@@ -148,7 +149,20 @@ function renderField(field, currentValue, onChange) {
       return <DiagnosisSearch value={value} onChange={onChange} />;
 
     case "textarea":
-      return <textarea rows={field.rows || 3} placeholder={field.placeholder} className={`${baseClasses} resize-y`} value={value} onChange={(e) => onChange(e.target.value)} />;
+      return (
+        <div className="relative group">
+          <textarea 
+            rows={field.rows || 3} 
+            placeholder={field.placeholder} 
+            className={`${baseClasses} resize-y pr-10`} 
+            value={value} 
+            onChange={(e) => onChange(e.target.value)} 
+          />
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <VoiceRecorderButton onTranscriptionResult={(text) => onChange((value ? value + " " : "") + text)} />
+          </div>
+        </div>
+      );
 
     case "select":
       return (

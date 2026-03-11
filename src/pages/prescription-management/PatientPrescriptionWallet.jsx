@@ -12,9 +12,12 @@ import PrescriptionFilters from "@/pages/prescription-management/components/Pres
 import PrescriptionTabs from "@/pages/prescription-management/components/PrescriptionTabs";
 import PharmacyFinderModal from "@/pages/prescription-management/components/PharmacyFinderModal";
 import RenewalRequestModal from "@/pages/prescription-management/components/RenewalRequestModal";
+import { listPrescriptionsByPatient } from "@/api/prescriptions/prescriptions";
+import { useAuth } from "@/context/AuthContext";
 
 const PatientPrescriptionWallet = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
 
   // Estado UI
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -30,24 +33,40 @@ const PatientPrescriptionWallet = () => {
   const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
 
-  // Mock Data: MIS RECETAS (Paciente)
-  const [prescriptions] = useState([
-      {
-        id: "RX-PT-001",
-        prescriptionNumber: "CMV-2025-123",
-        medicationName: "Losartán",
-        dosage: "50mg",
-        frequency: "1 diaria",
-        quantity: "30",
-        doctorName: "Dr. Carlos Mendoza",
-        specialty: "Cardiología",
-        issueDate: "2025-08-15T10:30:00Z",
-        expiryDate: "2025-11-15T23:59:59Z",
-        status: "issued", // "issued" es el equivalente a "activa" para paciente
-        type: "cardiovascular"
-      },
-      // ... otros datos ...
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [prescriptions, setPrescriptions] = useState([]);
+
+  // CARGAR RECETAS REALES DE SUPABASE
+  const loadPrescriptions = async () => {
+    if (!profile?.id) return;
+    setIsLoading(true);
+    try {
+      const data = await listPrescriptionsByPatient(profile.id);
+      
+      // Mapear campos de Supabase a la UI
+      const mapped = data.map(p => ({
+        ...p,
+        medicationName: p.name,
+        dosage: p.dosage,
+        quantity: p.quantity,
+        frequency: p.frequency,
+        doctorName: p.doctor?.full_name || "Médico",
+        specialty: p.doctor?.metadata?.specialty_label || "Especialista",
+        issueDate: p.created_at,
+        expiryDate: p.end_date || new Date(new Date(p.created_at).getTime() + 90*24*60*60*1000).toISOString(),
+        status: p.status === 'active' ? 'issued' : p.status // Normalizar estados para la UI de paciente
+      }));
+      setPrescriptions(mapped);
+    } catch (err) {
+      console.error("Error loading patient prescriptions:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.id) loadPrescriptions();
+  }, [profile?.id]);
 
   // Filtrado
   const filteredPrescriptions = useMemo(() => {
@@ -98,35 +117,42 @@ const PatientPrescriptionWallet = () => {
           </div>
 
           {/* Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredPrescriptions.map((rx) => (
-                <PrescriptionCard
-                  key={rx.id}
-                  prescription={rx}
-                  // Eventos de Paciente
-                  onFindPharmacy={() => {
-                    setSelectedPrescription(rx);
-                    setIsPharmacyModalOpen(true);
-                  }}
-                  onRenewRequest={() => {
-                    setSelectedPrescription(rx);
-                    setIsRenewalModalOpen(true);
-                  }}
-                  onDownload={() => alert("Descargando PDF...")}
-                />
-            ))}
-          </div>
-          
-          {/* Empty State */}
-          {filteredPrescriptions.length === 0 && (
-             <div className="text-center py-12 text-muted-foreground">
-                No tienes recetas en esta sección.
-                {activeTab === 'issued' && (
-                    <div className="mt-4">
-                        <Button onClick={() => navigate('/doctor-discovery')}>Buscar Médico</Button>
-                    </div>
-                )}
+          {isLoading ? (
+             <div className="flex items-center justify-center p-20">
+                <Icon name="Loader2" className="animate-spin text-primary" size={40} />
              </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredPrescriptions.map((rx) => (
+                  <PrescriptionCard
+                    key={rx.id}
+                    prescription={rx}
+                    // Eventos de Paciente
+                    onFindPharmacy={() => {
+                      setSelectedPrescription(rx);
+                      setIsPharmacyModalOpen(true);
+                    }}
+                    onRenewRequest={() => {
+                      setSelectedPrescription(rx);
+                      setIsRenewalModalOpen(true);
+                    }}
+                    onDownload={() => alert("Descargando PDF...")}
+                  />
+                ))}
+              </div>
+              
+              {filteredPrescriptions.length === 0 && (
+                 <div className="text-center py-12 text-muted-foreground">
+                    No tienes recetas en esta sección.
+                    {activeTab === 'issued' && (
+                        <div className="mt-4">
+                            <Button onClick={() => navigate('/doctor-discovery')}>Buscar Médico</Button>
+                        </div>
+                    )}
+                 </div>
+              )}
+            </>
           )}
 
           {/* Modales */}

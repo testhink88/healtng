@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 /** Normaliza y unifica sinónimos de rol */
 const canonicalRole = (r) => {
@@ -79,14 +80,17 @@ const fallbackByRole = (role) => {
 /**
  * RoleGuard
  * - allowed: string | string[] | "*" | undefined
- *   Si allowed es undefined o [] => se comporta como "auth guard"
  */
 const RoleGuard = ({ children, allowed, redirectTo }) => {
   const location = useLocation();
+  const { user, profile, loading } = useAuth();
   const path = location?.pathname || "";
 
-  const rawRole = localStorage.getItem("userRole");
-  const isAuthenticated = Boolean(rawRole);
+  // 1) Si está cargando, espera (puedes poner un spinner ligero)
+  if (loading) return null;
+
+  const rawRole = profile?.role || localStorage.getItem("userRole"); 
+  const isAuthenticated = Boolean(user) || Boolean(rawRole);
   const role = canonicalRole(rawRole || "patient");
 
   // Detectar rutas públicas de auth

@@ -2,22 +2,42 @@ import React, { useState } from 'react';
 import Icon from '@/components/AppIcon';
 import Button from '@/components/ui/Button';
 
-const NextAppointment = ({ className = '' }) => {
-  const [appointment] = useState({
-    id: 1,
-    doctorName: 'Dr. Carlos Mendoza',
-    specialty: 'Cardiología',
-    date: '2025-08-18',
-    time: '10:00',
-    type: 'Consulta de Control',
-    location: 'Consultorio 201, Centro Médico Caracas',
-    avatar: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face',
-    status: 'confirmed',
+const NextAppointment = ({ className = '', appointmentData }) => {
+  const [showActions, setShowActions] = useState(false);
+
+  // Si no hay datos, mostrar estado vacío o placeholder
+  if (!appointmentData) {
+    return (
+      <div className={`bg-card rounded-2xl border border-dashed border-border p-8 text-center ${className}`}>
+        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+          <Icon name="Calendar" size={20} className="text-muted-foreground opacity-50" />
+        </div>
+        <h3 className="font-semibold text-foreground">Sin citas próximas</h3>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">No tienes citas confirmadas para los próximos días.</p>
+        <Button 
+          onClick={() => window.location.href = '/appointment-booking'}
+          primary
+          className="mx-auto"
+        >
+          Agendar ahora
+        </Button>
+      </div>
+    );
+  }
+
+  const appointment = {
+    id: appointmentData.id,
+    doctorName: appointmentData.professional_name || 'Médico Especialista',
+    specialty: appointmentData.specialty_label || 'Consulta General',
+    date: appointmentData.date,
+    time: appointmentData.time,
+    type: appointmentData.reason || 'Consulta Médica',
+    location: appointmentData.location || 'Consultorio Virtual / Clínica',
+    avatar: appointmentData.doctor_avatar || '/assets/images/no_image.png',
+    status: appointmentData.status,
     canReschedule: true,
     canCancel: true
-  });
-
-  const [showActions, setShowActions] = useState(false);
+  };
 
   const handleReschedule = () => {
     window.location.href = `/appointment-booking?reschedule=${appointment?.id}`;

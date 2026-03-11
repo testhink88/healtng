@@ -33,15 +33,30 @@ const PrescriptionCard = ({ prescription, onFindPharmacy, onDownload, onShare, o
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString)?.toLocaleDateString('es-VE', {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString('es-VE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     });
   };
 
-  const generateQRCode = (prescriptionId) => {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=PRESCRIPTION_${prescriptionId}`;
+  const generateQRCode = (rx) => {
+    if (!rx?.id) return '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://healtng.com';
+    const params = new URLSearchParams({
+      rx: rx.id,
+      patient: rx.patient?.full_name || rx.patientName || 'Paciente',
+      med: rx.name || rx.medicationName || 'Medicamento',
+      doctor: rx.doctor?.full_name || rx.doctorName || 'Médico',
+      qty: rx.quantity || '1',
+      date: rx.created_at || rx.issueDate || ''
+    }).toString();
+    
+    const url = `${origin}/prescription-intake-portal?${params}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
   };
 
   return (
@@ -67,8 +82,8 @@ const PrescriptionCard = ({ prescription, onFindPharmacy, onDownload, onShare, o
         <div className="flex-shrink-0 ml-4">
           <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
             <Image 
-              src={generateQRCode(prescription?.id)}
-              alt={`QR Code para ${prescription?.medicationName}`}
+              src={generateQRCode(prescription)}
+              alt={`QR Code para ${prescription?.medicationName || prescription?.name}`}
               className="w-full h-full rounded-lg"
             />
           </div>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/AppIcon";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 /**
  * 👇 Rutas del logotipo (se sirven desde /public)
@@ -26,8 +27,9 @@ const Header = ({
   className = "",
 }) => {
   const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
 
-  const effectiveRole = userRole || localStorage.getItem("userRole") || "patient";
+  const effectiveRole = profile?.role || userRole || localStorage.getItem("userRole") || "patient";
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -270,19 +272,35 @@ const Header = ({
 
           {/* Perfil */}
           <div className="profile-dropdown relative">
-            <Button variant="ghost" onClick={() => setIsProfileOpen((v) => !v)} className="flex items-center space-x-2 px-3 py-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <Icon name="User" size={16} color="white" />
-              </div>
-              <Icon name="ChevronDown" size={16} className="text-muted-foreground" />
+            <Button variant="ghost" onClick={() => setIsProfileOpen((v) => !v)} className="flex items-center space-x-2 px-1.5 py-1.5 rounded-full hover:bg-muted/80 transition-all">
+              {profile?.metadata?.avatar_url ? (
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-background shadow-sm">
+                   <img 
+                    src={profile.metadata.avatar_url} 
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                   />
+                </div>
+              ) : (
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-sm">
+                  {profile?.full_name ? (
+                    <span className="text-[10px] font-bold text-white uppercase tracking-tighter">
+                      {profile.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </span>
+                  ) : (
+                    <Icon name="User" size={16} color="white" />
+                  )}
+                </div>
+              )}
+              <Icon name="ChevronDown" size={14} className="text-muted-foreground mr-1" />
             </Button>
 
             {isProfileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-lg shadow-lg z-50">
-                <div className="p-4 border-b border-border">
-                  <p className="font-medium text-foreground">Healtng</p>
-                  <p className="text-sm text-muted-foreground">
-                    Rol actual: <span className="font-medium">{effectiveRole}</span>
+              <div className="absolute right-0 top-full mt-2 w-64 bg-popover border border-border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-4 border-b border-border bg-muted/30">
+                  <p className="font-bold text-foreground truncate">{profile?.full_name || "Usuario Healtng"}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5 font-semibold">
+                    Rol: <span className="text-primary">{effectiveRole}</span>
                   </p>
                 </div>
 
@@ -305,8 +323,7 @@ const Header = ({
                     variant="ghost"
                     className="w-full justify-start px-4 py-2 text-sm text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={() => {
-                      localStorage.removeItem("auth-token");
-                      navigate("/login");
+                      signOut();
                     }}
                   >
                     <Icon name="LogOut" size={16} className="mr-3" />

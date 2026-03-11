@@ -7,6 +7,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/ui/Header"; 
 import Sidebar from "@/components/ui/Sidebar"; 
 import Icon from "@/components/AppIcon";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 /* =========================================================
    DOCTOR SETTINGS (V2)
@@ -228,12 +230,14 @@ function getComparable(s) {
 ========================================================= */
 
 export default function DoctorSettings() {
+  const { profile, fetchProfile } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
   const [settings, setSettings] = useState(() => makeDefaults());
   const [baseline, setBaseline] = useState(() => makeDefaults());
   
   const [statusMsg, setStatusMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Modal Export/Import
   const [showModal, setShowModal] = useState(false);
@@ -244,11 +248,21 @@ export default function DoctorSettings() {
   const fileSignRef = useRef(null);
   const fileStampRef = useRef(null);
 
-  // 1. Carga Inicial
+  // 1. Carga Inicial (Primero de Perfil Supabase, luego fallback LocalStorage)
   useEffect(() => {
-    let raw = localStorage.getItem(STORAGE_KEY);
+    const defaults = makeDefaults();
     
-    // Fallback Legacy
+    // Prioridad 1: Datos en Supabase Metadata
+    if (profile?.metadata?.settings_v2) {
+      const merged = deepMerge(defaults, profile.metadata.settings_v2);
+      merged.meta.version = SCHEMA_VERSION;
+      setSettings(merged);
+      setBaseline(deepClone(merged));
+      return;
+    }
+
+    // Prioridad 2: LocalStorage (Migración)
+    let raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       for (const key of LEGACY_KEYS) {
         const legacy = localStorage.getItem(key);
@@ -259,14 +273,11 @@ export default function DoctorSettings() {
       }
     }
 
-    const defaults = makeDefaults();
-
     if (raw) {
       const parsed = safeJsonParse(raw, null);
       if (parsed) {
         const migrated = migrateDoctorSettings(parsed);
         const merged = deepMerge(defaults, migrated);
-        // Aseguramos versión correcta
         merged.meta.version = SCHEMA_VERSION;
         setSettings(merged);
         setBaseline(deepClone(merged));
@@ -277,7 +288,7 @@ export default function DoctorSettings() {
     // Si no hay data o falló parse
     setSettings(defaults);
     setBaseline(deepClone(defaults));
-  }, []);
+  }, [profile]);
 
   // 2. Dirty Check
   const isDirty = useMemo(() => {
@@ -335,30 +346,61 @@ export default function DoctorSettings() {
     return errs;
   };
 
-  const save = () => {
+  const save = async () => {
+    if (!profile?.id) return;
     setErrorMsg("");
     setStatusMsg("");
+    setSaving(true);
 
     const errors = validate(settings);
     if (errors.length > 0) {
       setErrorMsg(errors.join(" "));
+      setSaving(false);
       return;
     }
 
     try {
-      // Audit Log
       const next = deepClone(settings);
+      
+      // Audit Log
       if (next.privacySecurity.audit.enabled) {
         const event = { at: nowIso(), action: "save", section: activeSection };
         next.privacySecurity.audit.lastEvents = [event, ...next.privacySecurity.audit.lastEvents].slice(0, 50);
       }
       
+      // 1. Persistencia Local (Buffer)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+      // 2. Persistencia en Supabase
+      const fullName = `${next.profile.firstName} ${next.profile.lastName}`.trim();
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          metadata: {
+            ...profile.metadata,
+            settings_v2: next,
+            // Atajos para ser compatibles con otros componentes
+            license: next.profile.licenseNumber,
+            specialty_label: next.profile.specialtyPrimary,
+            avatar_url: next.profile.photo.dataUrl // Para el Header
+          }
+        })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      // 3. Actualizar estado y Contexto
       setSettings(next);
       setBaseline(deepClone(next));
-      setStatusMsg("Configuración guardada correctamente.");
+      setStatusMsg("Configuración sincronizada en la nube.");
+      await fetchProfile(profile.id); // Refrescar Header y dashboard
     } catch (e) {
-      setErrorMsg("Error guardando en LocalStorage (posiblemente lleno).");
+      console.error("Save Error:", e);
+      setErrorMsg("Error guardando en Supabase: " + e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -446,7 +488,9 @@ export default function DoctorSettings() {
               <p className="text-sm text-gray-500">Ajustes de perfil, agenda y documentos.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={save} primary disabled={!isDirty}>Guardar</Button>
+              <Button onClick={save} primary disabled={!isDirty || saving}>
+                 {saving ? "Sincronizando..." : "Guardar en Nube"}
+              </Button>
               <Button onClick={revert} disabled={!isDirty}>Revertir</Button>
               <Button onClick={handleExport}>Exportar</Button>
               <Button onClick={handleImport}>Importar</Button>

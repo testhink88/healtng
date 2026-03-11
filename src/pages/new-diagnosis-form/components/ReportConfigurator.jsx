@@ -25,14 +25,18 @@ const ReportConfigurator = ({ isOpen, onClose, onConfirm, patient, diagnosisData
   }, []);
 
   const [sections, setSections] = useState({
-    reason: true, history: true, findings: true, analysis: true, plan: true,
+    evolution: true, vitals: true, diagnosis: true, plan: true,
   });
 
   // GENERAR TEXTO PLANO (Para guardar en BD interna)
   const generatePlainText = () => {
-    let text = `INFORME: ${specialtyName}\nPACIENTE: ${patient.name}\n\n`;
-    if (sections.reason) text += `MOTIVO: ${diagnosisData.consultation_reason || 'N/A'}\n`;
-    if (sections.plan) text += `PLAN: ${diagnosisData.treatment_plan || 'N/A'}\n`;
+    let text = `INFORME CLÍNICO: ${specialtyName}\nPACIENTE: ${patient.name}\n\n`;
+    if (sections.evolution) text += `EVOLUCIÓN:\n${diagnosisData.clinical_note || 'N/A'}\n\n`;
+    if (sections.vitals) {
+        text += `SIGNOS VITALES: FC: ${diagnosisData.heart_rate || '--'} | Temp: ${diagnosisData.temp || '--'} | TA: ${diagnosisData.bp_systolic || '--'}/${diagnosisData.bp_diastolic || '--'}\n\n`;
+    }
+    if (sections.diagnosis) text += `DIAGNÓSTICO: ${diagnosisData.main_diagnosis_cie10?.name || 'N/A'}\n\n`;
+    if (sections.plan) text += `PLAN Y TRATAMIENTO:\n${diagnosisData.treatment_plan || 'N/A'}\n`;
     return text;
   };
 
@@ -105,43 +109,36 @@ const ReportConfigurator = ({ isOpen, onClose, onConfirm, patient, diagnosisData
             {/* 3. CUERPO DEL INFORME (Renderizado Condicional) */}
             <div className="flex-1 space-y-6 text-sm leading-relaxed text-justify">
               
-              {sections.reason && diagnosisData.consultation_reason && (
+              {sections.evolution && diagnosisData.clinical_note && (
                 <div>
-                  <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1">Motivo de Consulta</h4>
-                  <p>{diagnosisData.consultation_reason}</p>
+                  <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1 tracking-widest border-b border-gray-100 pb-1">Nota de Evolución</h4>
+                  <p className="whitespace-pre-wrap mt-2">{diagnosisData.clinical_note}</p>
                 </div>
               )}
 
-              {sections.history && diagnosisData.history_current_illness && (
-                <div>
-                  <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1">Enfermedad Actual</h4>
-                  <p>{diagnosisData.history_current_illness}</p>
-                </div>
-              )}
-
-              {sections.findings && (diagnosisData.clinical_findings || diagnosisData.vital_signs) && (
-                 <div>
-                   <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1">Examen Físico</h4>
-                   {diagnosisData.vital_signs && (
-                      <div className="text-xs text-gray-500 mb-1 font-sans">
-                         TA: {diagnosisData.vital_signs.bloodPressure || '--'} | FC: {diagnosisData.vital_signs.heartRate || '--'} | Temp: {diagnosisData.vital_signs.temperature || '--'}
-                      </div>
-                   )}
-                   <p className="whitespace-pre-wrap">{diagnosisData.clinical_findings}</p>
+              {sections.vitals && (diagnosisData.heart_rate || diagnosisData.temp || diagnosisData.bp_systolic) && (
+                 <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+                    <h4 className="font-bold text-gray-400 text-[10px] uppercase mb-1">Constantes Vitales</h4>
+                    <div className="flex gap-6 text-xs font-sans">
+                       <span><strong>FC:</strong> {diagnosisData.heart_rate || '--'} lpm</span>
+                       <span><strong>Temp:</strong> {diagnosisData.temp || '--'} °C</span>
+                       <span><strong>TA:</strong> {diagnosisData.bp_systolic || '--'}/{diagnosisData.bp_diastolic || '--'} mmHg</span>
+                    </div>
                  </div>
               )}
 
-              {sections.analysis && diagnosisData.main_diagnosis_cie10 && (
-                <div className="p-3 bg-blue-50 border-l-4 border-[#0E39B1]">
+              {sections.diagnosis && diagnosisData.main_diagnosis_cie10 && (
+                <div className="p-4 bg-blue-50/50 border-l-4 border-[#0E39B1] rounded-r-lg">
                    <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1">Impresión Diagnóstica</h4>
-                   <p className="font-medium">{diagnosisData.main_diagnosis_cie10.name} ({diagnosisData.main_diagnosis_cie10.code})</p>
+                   <p className="font-bold text-lg">{diagnosisData.main_diagnosis_cie10.name}</p>
+                   <p className="text-xs text-[#0E39B1]/70 font-mono mt-0.5">CIE-10: {diagnosisData.main_diagnosis_cie10.code}</p>
                 </div>
               )}
 
               {sections.plan && diagnosisData.treatment_plan && (
                 <div>
-                  <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1">Plan y Tratamiento</h4>
-                  <p className="whitespace-pre-wrap">{diagnosisData.treatment_plan}</p>
+                  <h4 className="font-bold text-[#0E39B1] text-xs uppercase mb-1 tracking-widest border-b border-gray-100 pb-1">Plan Terapéutico</h4>
+                  <p className="whitespace-pre-wrap mt-2">{diagnosisData.treatment_plan}</p>
                 </div>
               )}
             </div>

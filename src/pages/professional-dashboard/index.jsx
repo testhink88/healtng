@@ -6,27 +6,103 @@ import UpcomingSchedule from "@/pages/professional-dashboard/components/Upcoming
 import Icon from "@/components/AppIcon";
 import Button from "@/components/ui/Button";
 
-// 1. IMPORTAR EL CONTEXTO
+// 1. IMPORTAR CONTEXTOS Y API
 import { useProfessional } from "@/context/ProfessionalContext";
+import { useAuth } from "@/context/AuthContext";
+import { fetchAppointmentsByProfessional } from "@/api/appointments";
 
-// 2. [AGREGADO] IMPORTAR EL MODAL
+// 2. IMPORTAR EL MODAL
 import NewAppointmentModal from "@/components/modals/NewAppointmentModal";
+import RescheduleModal from "@/components/modals/RescheduleModal";
 
 const ProfessionalDashboard = () => {
+  const { profile } = useAuth();
+  const { currentProfessional, specialtyContext } = useProfessional();
+
+  // Roles y permisos
+  const userRole = profile?.role || "doctor";
+
   // Shell
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [userRole] = useState("doctor");
-
-  // 3. [AGREGADO] ESTADO PARA CONTROLAR EL MODAL
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Estado
-  const [currentTime] = useState(new Date());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState({ isOpen: false, appointment: null });
+  const [loading, setLoading] = useState(true);
+  const [todaysAppointments, setTodaysAppointments] = useState([]);
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
-  // 2. CONSUMIR EL CONTEXTO
-  const { currentProfessional, specialtyContext } = useProfessional();
+  // 3. GENERAR SEMANA DINÁMICA (Lunes a Domingo)
+  const getWeekPills = (allAppointments = []) => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0: Dom, 1: Lun...
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    
+    const monday = new Date();
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0,0,0,0);
+
+    const weekLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    const todayISO = now.toISOString().split('T')[0];
+
+    return weekLabels.map((label, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const iso = d.toISOString().split('T')[0];
+      
+      return {
+        id: label.toLowerCase(),
+        dayLabel: label,
+        dayNum: d.getDate(),
+        fullDate: iso,
+        active: iso === todayISO,
+        count: allAppointments.filter(a => a.date === iso).length
+      };
+    });
+  };
+
+  const [weekPills, setWeekPills] = useState([]);
+
+  // CARGAR CITAS REALES DE SUPABASE
+  const loadAppointments = async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const data = await fetchAppointmentsByProfessional(profile.id);
+      
+      // 1. Mapear para la lista de hoy
+      const mappedToday = data
+        .filter(a => a.date === today)
+        .map(a => ({
+          id: a.id,
+          patientName: a.patient_name,
+          patientId: a.patient_id,
+          time: a.time ? a.time.slice(0, 5) : "--:--",
+          duration: a.metadata?.duration || 30,
+          type: a.metadata?.type || "in-person",
+          status: a.status,
+          reason: a.reason,
+          intakeStatus: a.metadata?.intakeStatus || {},
+          original: a // Mantenemos el objeto original para el modal
+        }));
+
+      setTodaysAppointments(mappedToday);
+
+      // 2. Generar pills de la semana con los datos completos
+      setWeekPills(getWeekPills(data));
+
+    } catch (err) {
+      console.error("Error loading dashboard appointments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.id) loadAppointments();
+  }, [profile?.id]);
 
   useEffect(() => {
     const onOnline = () => setIsOfflineMode(false);
@@ -39,58 +115,32 @@ const ProfessionalDashboard = () => {
     };
   }, []);
 
-  // 3. DATOS DINÁMICOS
   const professionalData = {
-    name: currentProfessional?.name || "Dr. Usuario Invitado",
-    specialty: specialtyContext?.label || "Medicina General", 
-    mpps: currentProfessional?.licenseNumber || "Sin registro",
-    state: currentProfessional?.state || "Ubicación no definida",
-    avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150",
+    name: profile?.full_name || currentProfessional?.name || "Médico",
+    specialty: profile?.metadata?.specialty_label || specialtyContext?.label || "Especialista", 
+    mpps: profile?.metadata?.license || currentProfessional?.licenseNumber || "---",
+    state: profile?.metadata?.state || currentProfessional?.state || "Venezuela",
+    avatar: profile?.avatar_url || "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150",
     rating: 5.0,
     reviews: 0,
     verified: true,
   };
 
-  // Datos demo de citas
-  const todaysAppointments = [
-    { id: 1, patientName: "María González", time: "09:00", duration: 30, type: "in-person", status: "confirmed", reason: "Consulta General", note: "Control de presión arterial" },
-    { id: 2, patientName: "Carlos Rodríguez", time: "09:30", duration: 20, type: "in-person", status: "pending", reason: "Seguimiento", note: "Revisión de exámenes" },
-    { id: 3, patientName: "Ana Martínez", time: "10:00", duration: 45, type: "teleconsultation", status: "inprogress", reason: "Primera Consulta", note: "Evaluación inicial" },
-    { id: 4, patientName: "Luis Pérez", time: "10:45", duration: 30, type: "in-person", status: "confirmed", reason: "Control", note: "Control post-operatorio" },
-    { id: 5, patientName: "Carmen Silva", time: "11:15", duration: 60, type: "in-person", status: "confirmed", reason: "Consulta Especializada", note: "Evaluación cardiológica" },
-  ];
+  const dayTimeline = todaysAppointments.map(a => ({
+    time: a.time,
+    patientName: a.patientName,
+    status: a.status,
+    appointment: a.original
+  }));
 
-  const weekPills = [
-    { id: "mon", dayLabel: "Lun", dayNum: 26, count: 8 },
-    { id: "tue", dayLabel: "Mar", dayNum: 27, count: 6 },
-    { id: "wed", dayLabel: "Mié", dayNum: 28, count: 9 },
-    { id: "thu", dayLabel: "Jue", dayNum: 29, count: 7 },
-    { id: "fri", dayLabel: "Vie", dayNum: 30, count: 5 },
-    { id: "sat", dayLabel: "Sáb", dayNum: 31, count: 3 },
-    { id: "sun", dayLabel: "Dom", dayNum: 1, count: 12, active: true },
-  ];
+  const currentMonthLabel = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 
-  const dayTimeline = [
-    { time: "09:00", left: "María G.", right: "Carlos R." },
-    { time: "10:00", left: "Ana M." },
-    { time: "11:00", left: "Luis P.", right: "Carmen S." },
-    { time: "12:00", slot: "Disponible" },
-    { time: "13:00", slot: "Descanso" },
-    { time: "14:00", left: "Pedro L." },
-    { time: "15:00", left: "Sofía R.", right: "Miguel A." },
-    { time: "16:00", left: "Elena V." },
-  ];
-
-  const formatReviews = (n) => new Intl.NumberFormat("es-VE").format(n);
-
-  // -------- Accesos rápidos --------
   const quickAccess = [
     {
       key: "new_appointment",
       icon: "Plus",
       title: "Nueva Cita",
       subtitle: "Programar cita con paciente",
-      // 4. [MODIFICADO] CAMBIAMOS EL REDIRECT POR LA APERTURA DEL MODAL
       onClick: () => setIsModalOpen(true),
     },
     {
@@ -98,10 +148,7 @@ const ProfessionalDashboard = () => {
       icon: "Calendar",
       title: "Pacientes Hoy",
       subtitle: "Ver agenda del día",
-      onClick: () =>
-        document
-          .getElementById("today-appointments")
-          ?.scrollIntoView({ behavior: "smooth" }),
+      onClick: () => document.getElementById("today-appointments")?.scrollIntoView({ behavior: "smooth" }),
     },
     {
       key: "rx",
@@ -111,72 +158,17 @@ const ProfessionalDashboard = () => {
       onClick: () => (window.location.href = "/prescriptions/new"),
     },
     {
-      key: "emergency",
-      icon: "AlertTriangle",
-      title: "Emergencias",
-      subtitle: "Casos urgentes",
-      onClick: () => (window.location.href = "/emergency"),
+      key: "report",
+      icon: "BarChart",
+      title: "Reportes",
+      subtitle: "Estadísticas del mes",
+      onClick: () => (window.location.href = "/professional/analytics"),
     },
   ];
 
-  // Row Component
-  const QuickAccessRow = () => (
-    <div className="mb-6 sm:mb-8">
-      {/* Mobile swipeable row */}
-      <div className="lg:hidden overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] no-scrollbar">
-        <div className="flex gap-4 min-w-max pr-2">
-          {quickAccess.map((qa) => (
-            <button
-              key={qa.key}
-              onClick={qa.onClick}
-              className="min-w-[260px] bg-card border border-border rounded-xl p-4 text-left hover:bg-accent transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Icon name={qa.icon} size={16} className="text-primary" />
-                </div>
-                <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
-              </div>
-              <div className="mt-3">
-                <div className="font-medium text-foreground">{qa.title}</div>
-                <div className="text-xs text-muted-foreground">{qa.subtitle}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop grid */}
-      <div className="hidden lg:grid grid-cols-4 gap-6 mb-0">
-        {quickAccess.map((qa) => (
-          <button
-            key={qa.key}
-            onClick={qa.onClick}
-            className="bg-card border border-border rounded-xl p-4 text-left hover:bg-accent transition-colors"
-          >
-            <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Icon name={qa.icon} size={16} className="text-primary" />
-              </div>
-              <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
-            </div>
-            <div className="mt-3">
-              <div className="font-medium text-foreground">{qa.title}</div>
-              <div className="text-xs text-muted-foreground">{qa.subtitle}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        userRole={userRole}
-        isAuthenticated
-        onMenuToggle={() => setMobileSidebarOpen(true)}
-      />
+      <Header userRole={userRole} onMenuToggle={() => setMobileSidebarOpen(true)} />
       <Sidebar
         userRole={userRole}
         isCollapsed={sidebarCollapsed}
@@ -185,95 +177,81 @@ const ProfessionalDashboard = () => {
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
-      <main
-        className={`pt-16 transition-all duration-300 ${
-          sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
-        }`}
-      >
+      <main className={`pt-16 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"}`}>
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-          {/* Encabezado profesional DINÁMICO */}
-          <div className="bg-card border border-border rounded-lg p-4 sm:p-5 mb-6 sm:mb-8">
+          
+          <div className="bg-card border border-border rounded-2xl p-6 mb-8 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 rounded-full overflow-hidden flex items-center justify-center text-blue-600 font-bold text-2xl border-2 border-white shadow-sm">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-2xl border-2 border-white shadow-sm">
                    {professionalData.name.charAt(0)}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                      Bienvenido, {professionalData.name}
-                    </h1>
-                    {professionalData.verified && (
-                      <span
-                        className="inline-flex items-center gap-1 text-xs font-medium text-primary"
-                        title="Profesional verificado"
-                      >
-                        <Icon name="BadgeCheck" size={16} className="text-primary" />
-                        Verificado
-                      </span>
-                    )}
+                    <h1 className="text-2xl font-bold text-foreground">Hola, {professionalData.name}</h1>
+                    <Icon name="BadgeCheck" size={18} className="text-primary" />
                   </div>
-
-                  <div className="mt-1 text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {professionalData.specialty} • MPPS: {professionalData.mpps}
                   </div>
-                   <div className="text-xs text-gray-400">
-                    {professionalData.state}
-                  </div>
-
-                  <div className="mt-1 flex items-center gap-1 text-sm">
-                    <Icon name="Star" size={16} className="text-warning fill-current" />
-                    <span className="font-medium text-foreground">
-                      {professionalData.rating}
-                    </span>
-                    <span className="text-muted-foreground">
-                      ({formatReviews(professionalData.reviews)} comentarios)
-                    </span>
-                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{professionalData.state}</div>
                 </div>
               </div>
-
-              {isOfflineMode && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-warning/10 border border-warning/20 rounded-full">
-                  <Icon name="WifiOff" size={16} className="text-warning" />
-                  <span className="text-sm font-medium text-warning">Modo Offline</span>
-                </div>
-              )}
+              <Button variant="outline" className="hidden sm:flex" onClick={loadAppointments}>
+                 <Icon name="RefreshCcw" size={14} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                 Actualizar
+              </Button>
             </div>
           </div>
 
-          {/* Accesos rápidos */}
-          <QuickAccessRow />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+             {quickAccess.map(qa => (
+               <button key={qa.key} onClick={qa.onClick} className="bg-card border border-border rounded-xl p-4 text-left hover:border-primary transition-all group">
+                  <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center mb-3 group-hover:bg-primary/10">
+                     <Icon name={qa.icon} size={20} className="text-primary" />
+                  </div>
+                  <p className="font-bold text-sm text-foreground">{qa.title}</p>
+                  <p className="text-xs text-muted-foreground">{qa.subtitle}</p>
+               </button>
+             ))}
+          </div>
 
-          {/* Contenido Principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 xl:gap-10">
-            <div className="lg:col-span-2 space-y-7" id="today-appointments">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6" id="today-appointments">
               <AppointmentsList
                 appointments={todaysAppointments}
-                onCheckIn={(id) => console.log("[checkin]", id)}
-                onReschedule={(id) => console.log("[reschedule]", id)}
-                onCancel={(id) => console.log("[cancel]", id)}
-                hideConversation
+                dateLabel={loading ? "Cargando citas..." : null}
+                onEditAppointment={(app) => setRescheduleData({ isOpen: true, appointment: app })}
               />
             </div>
 
-            <div className="space-y-6 mt-2 lg:mt-0">
+            <div className="space-y-6">
               <UpcomingSchedule
                 weekPills={weekPills}
                 timeline={dayTimeline}
-                monthLabel="Agosto - Septiembre 2025"
+                monthLabel={currentMonthLabel}
+                onEditAppointment={(app) => setRescheduleData({ isOpen: true, appointment: app })}
               />
             </div>
           </div>
         </div>
 
-        {/* 5. [AGREGADO] RENDERIZADO DEL MODAL */}
         <NewAppointmentModal 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
-          onSave={(data) => {
-            console.log("Cita guardada con éxito:", data);
-            // Aquí podríamos agregar una notificación toast en el futuro
+          onSave={() => {
+            loadAppointments();
+            alert("Cita agendada correctamente.");
+          }}
+        />
+
+        <RescheduleModal 
+          isOpen={rescheduleData.isOpen}
+          appointment={rescheduleData.appointment}
+          onClose={() => setRescheduleData({ isOpen: false, appointment: null })}
+          onSave={() => {
+            loadAppointments();
+            alert("Cita reprogramada correctamente.");
           }}
         />
 

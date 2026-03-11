@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "@/components/AppIcon";
 import Button from "@/components/ui/Button";
@@ -63,6 +63,85 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   );
 };
 
+// --- MODAL DE PERFIL ---
+const ProfileModal = ({ isOpen, onClose }) => {
+  const [name, setName] = useState(() => localStorage.getItem("assistant-name") || "Asistente");
+  const [role, setRole] = useState(() => localStorage.getItem("assistant-role") || "Recepción");
+  const [avatar, setAvatar] = useState(() => localStorage.getItem("assistant-avatar") || null);
+  const fileRef = useRef();
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatar(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    localStorage.setItem("assistant-name", name);
+    localStorage.setItem("assistant-role", role);
+    if (avatar) localStorage.setItem("assistant-avatar", avatar);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <h3 className="font-bold text-gray-800">Mi Perfil</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><Icon name="X" size={18}/></button>
+        </div>
+        <div className="p-6 space-y-5">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-3">
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="w-20 h-20 rounded-full bg-blue-50 border-2 border-dashed border-blue-200 flex items-center justify-center cursor-pointer overflow-hidden hover:border-blue-400 transition-colors"
+            >
+              {avatar
+                ? <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                : <Icon name="Camera" size={28} className="text-blue-300" />
+              }
+            </div>
+            <button onClick={() => fileRef.current?.click()} className="text-xs text-[#0E39B1] font-semibold hover:underline">
+              Cambiar foto
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+          </div>
+          {/* Nombre */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+            <input
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-[#0E39B1] outline-none transition"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Tu nombre"
+            />
+          </div>
+          {/* Cargo */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cargo</label>
+            <input
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-[#0E39B1] outline-none transition"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              placeholder="Ej: Recepción, Triaje..."
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 justify-center" onClick={onClose}>Cancelar</Button>
+            <Button className="flex-1 bg-[#0E39B1] text-white justify-center" onClick={handleSave}>Guardar</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- COMPONENTE PRINCIPAL (CENTRO DE MANDO) ---
 
 const AssistantDashboard = () => {
@@ -76,7 +155,50 @@ const AssistantDashboard = () => {
   // MODALES
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [qrData, setQrData] = useState(null);
-  const [newPatientForm, setNewPatientForm] = useState({ name: "", dni: "" });
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef();
+  const [newPatientForm, setNewPatientForm] = useState({
+    name: "", 
+    dni: "", 
+    gender: "Femenino", 
+    birthDate: "", 
+    phone: "", 
+    email: "" 
+  });
+
+  // Datos perfil reactivos
+  const [assistantName, setAssistantName] = useState(() => localStorage.getItem("assistant-name") || "Asistente");
+  const [assistantAvatar, setAssistantAvatar] = useState(() => localStorage.getItem("assistant-avatar") || null);
+
+  // Cierra dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth-token");
+    localStorage.removeItem("userRole");
+    navigate("/login");
+  };
+
+  const handleOpenProfile = () => {
+    setIsDropdownOpen(false);
+    setIsProfileOpen(true);
+  };
+
+  const handleProfileClose = () => {
+    // Refresca los datos del header al cerrar el modal
+    setAssistantName(localStorage.getItem("assistant-name") || "Asistente");
+    setAssistantAvatar(localStorage.getItem("assistant-avatar") || null);
+    setIsProfileOpen(false);
+  };
 
   // MOCKS
   const MOCK_TASKS = [
@@ -104,7 +226,19 @@ const AssistantDashboard = () => {
         console.error("Error cargando pacientes", e);
       }
     };
-    loadData();
+    
+    loadData(); // Carga inicial
+
+    // Event listener para cambios en otras pestañas (Inmediato)
+    window.addEventListener("storage", loadData);
+
+    // Polling más agresivo para asegurar sincronización (1s)
+    const interval = setInterval(loadData, 1000);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", loadData);
+    };
   }, []);
 
   // FILTRO
@@ -116,6 +250,18 @@ const AssistantDashboard = () => {
 
   // --- ACCIONES REALES ---
 
+  const calculateAge = (dateString) => {
+    if (!dateString) return null;
+    const today = new Date();
+    const birthDate = new Date(dateString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const handleRegisterPatient = () => {
     if(!newPatientForm.name || !newPatientForm.dni) return;
     
@@ -123,6 +269,13 @@ const AssistantDashboard = () => {
       id: `p-${Date.now()}`,
       fullName: newPatientForm.name,
       dni: newPatientForm.dni,
+      // Nuevos campos vinculados
+      gender: newPatientForm.gender || "Femenino", // Default si no se selecciona
+      birthDate: newPatientForm.birthDate,
+      age: calculateAge(newPatientForm.birthDate),
+      phone: newPatientForm.phone,
+      email: newPatientForm.email,
+      
       status: "waiting", // Entra directo a sala de espera
       createdAt: new Date().toISOString()
     };
@@ -132,7 +285,7 @@ const AssistantDashboard = () => {
     localStorage.setItem("MOCK_PATIENTS", JSON.stringify(updated));
     
     setIsRegisterOpen(false);
-    setNewPatientForm({ name: "", dni: "" });
+    setNewPatientForm({ name: "", dni: "", gender: "Femenino", birthDate: "", phone: "", email: "" });
   };
 
   const handleCheckIn = (id) => {
@@ -157,14 +310,44 @@ const AssistantDashboard = () => {
           </div>
           <div className="flex items-center gap-4">
              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium">Asistente</p>
+                <p className="text-sm font-medium">{assistantName}</p>
                 <div className="flex items-center justify-end gap-1">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"/>
                   <p className="text-[10px] text-emerald-600 font-bold uppercase">En línea</p>
                 </div>
              </div>
-             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 border border-gray-200">
-                <Icon name="User" size={20} />
+             {/* Avatar + Dropdown */}
+             <div className="relative" ref={dropdownRef}>
+               <button
+                 onClick={() => setIsDropdownOpen(v => !v)}
+                 className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 border border-gray-200 hover:border-[#0E39B1] hover:ring-2 hover:ring-blue-100 transition-all overflow-hidden focus:outline-none"
+               >
+                 {assistantAvatar
+                   ? <img src={assistantAvatar} alt="avatar" className="w-full h-full object-cover" />
+                   : <Icon name="User" size={20} />
+                 }
+               </button>
+
+               {/* Dropdown menu */}
+               {isDropdownOpen && (
+                 <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                   <button
+                     onClick={handleOpenProfile}
+                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#0E39B1] transition-colors"
+                   >
+                     <Icon name="UserCircle" size={16} />
+                     Mi Perfil
+                   </button>
+                   <div className="my-1 border-t border-gray-100" />
+                   <button
+                     onClick={handleLogout}
+                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                   >
+                     <Icon name="LogOut" size={16} />
+                     Cerrar Sesión
+                   </button>
+                 </div>
+               )}
              </div>
           </div>
         </div>
@@ -278,7 +461,7 @@ const AssistantDashboard = () => {
                             onClick={() => handleStartIntake(patient.id)}
                             className="bg-[#0E39B1] text-white text-xs px-4 py-2 rounded-lg shadow-sm"
                          >
-                            Admisión
+                            Perfil
                          </Button>
                          
                          <div className="w-px h-8 bg-gray-200 mx-1"></div>
@@ -353,7 +536,7 @@ const AssistantDashboard = () => {
       <Modal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} title="Nuevo Paciente">
          <div className="space-y-4">
             <div>
-               <label className="block text-xs font-bold text-gray-500 mb-1">Nombre Completo</label>
+               <label className="block text-xs font-bold mb-1 uppercase">Nombre Completo</label>
                <input 
                   className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" 
                   placeholder="Ej: Juan Pérez"
@@ -361,15 +544,58 @@ const AssistantDashboard = () => {
                   onChange={e => setNewPatientForm({...newPatientForm, name: e.target.value})}
                />
             </div>
-            <div>
-               <label className="block text-xs font-bold text-gray-500 mb-1">Cédula / Identificación</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+               <label className="block text-xs font-bold mb-1 uppercase">Cédula / Identificación</label>
                <input 
                   className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" 
                   placeholder="Ej: V-12345678"
                   value={newPatientForm.dni}
                   onChange={e => setNewPatientForm({...newPatientForm, dni: e.target.value})}
                />
+               </div>
+               <div>
+                <label className="text-xs font-bold mb-1 block uppercase">Género</label>
+                <select className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" value={newPatientForm.gender} onChange={(e) => setNewPatientForm({...newPatientForm, gender: e.target.value})}>
+                  <option>Femenino</option>
+                  <option>Masculino</option>
+                </select>
+                </div>
             </div>
+            <div>
+               <label className="block text-xs font-bold mb-1 uppercase">Fecha de Nacimiento</label>
+               <input 
+                  className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" 
+                  placeholder="Ej: 01/01/2000"
+                  value={newPatientForm.birthDate}
+                  onChange={e => setNewPatientForm({...newPatientForm, birthDate: e.target.value})}
+               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+               <label className="block text-xs font-bold mb-1 uppercase">telefono (whatsapp)</label>
+               <input 
+                  className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" 
+                  placeholder="Ej: +58 414 123 4567"
+                  value={newPatientForm.phone}
+                  onChange={e => setNewPatientForm({...newPatientForm, phone: e.target.value})}
+               />
+               </div>
+               <div>
+                <label className="text-xs font-bold mb-1 uppercase">E-mail</label>
+                <input 
+                  className="w-full border rounded-lg p-3 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition" 
+                  placeholder="Ej: example@example.com"
+                  value={newPatientForm.email}
+                  onChange={e => setNewPatientForm({...newPatientForm, email: e.target.value})}
+                />
+                </div>
+            </div>
+
+
+
+
             <div className="pt-4 flex gap-3">
                <Button variant="outline" className="flex-1 justify-center border-gray-300" onClick={() => setIsRegisterOpen(false)}>Cancelar</Button>
                <Button className="flex-1 bg-[#0E39B1] text-white justify-center shadow-lg shadow-blue-900/10" onClick={handleRegisterPatient}>Registrar y Admitir</Button>
@@ -377,25 +603,37 @@ const AssistantDashboard = () => {
          </div>
       </Modal>
 
-      {/* 2. Modal QR */}
-      <Modal isOpen={!!qrData} onClose={() => setQrData(null)} title="Orden Externa (QR)">
+      <Modal isOpen={!!qrData} onClose={() => setQrData(null)} title="Receta Digital (QR)">
          <div className="text-center space-y-6">
             <p className="text-sm text-gray-600 px-4">
-               Escanee este código en el laboratorio externo para vincular los resultados a <strong>{qrData?.fullName}</strong>.
+               Escanee para ver la receta digital de <strong>{qrData?.fullName}</strong>.
             </p>
-            <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 w-56 h-56 mx-auto flex items-center justify-center">
-               <Icon name="QrCode" size={120} className="text-gray-800" />
+            <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 w-56 h-56 mx-auto flex items-center justify-center overflow-hidden">
+               {qrData && (
+                 <img 
+                   src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/public/prescription/${qrData.id}`)}`} 
+                   alt="QR Code" 
+                   className="w-full h-full object-contain"
+                 />
+               )}
             </div>
             <div className="flex gap-2 justify-center pt-2">
-               <Button variant="outline" className="border-gray-300 text-gray-700" onClick={() => alert("Imprimiendo...")}>
-                  <Icon name="Printer" size={16} className="mr-2"/> Imprimir PDF
-               </Button>
-               <Button className="bg-[#0E39B1] text-white" onClick={() => setQrData(null)}>
-                  Cerrar
+               <a 
+                 href={`/public/prescription/${qrData?.id}`} 
+                 target="_blank"
+                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
+               >
+                  <Icon name="ExternalLink" size={16}/> Abrir Enlace
+               </a>
+               <Button className="bg-[#0E39B1] text-white" onClick={() => window.print()}>
+                  <Icon name="Printer" size={16} className="mr-2"/> Imprimir
                </Button>
             </div>
          </div>
       </Modal>
+
+      {/* MODAL DE PERFIL */}
+      <ProfileModal isOpen={isProfileOpen} onClose={handleProfileClose} />
 
     </div>
   );

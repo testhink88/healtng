@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Upload, Download, Plus, Search, RefreshCw } from "lucide-react"; // Icono RefreshCw nuevo
+import { Upload, Download, Plus, Search, RefreshCw } from "lucide-react"; 
 import { useLocation, useNavigate } from "react-router-dom";
 
 import Input from "@/components/ui/Input";
@@ -15,28 +15,28 @@ import BulkActionsPanel from "../components/inventory/BulkActionsPanel";
 import BusinessProfileSelector from "../components/BusinessProfileSelector";
 
 import { deriveStockStatus, STOCK_STATUS } from "@/utils/stock";
+import { getProducts, globalSync } from "../utils/inventorySync";
+import { supabase } from "@/lib/supabase";
 
 // -----------------------------------------------------------------------------
-// KEYS DE ALMACENAMIENTO
+// KEYS DE ALMACENAMIENTO (Se mantienen los de perfil, pero inventario pasa a Supabase)
 // -----------------------------------------------------------------------------
-const INVENTORY_STORAGE_KEY = "healtng_provider_inventory_v1";
 const B2B_CATALOG_STORAGE_KEY = "healtng_provider_b2b_catalog_v1";
-const PROFILE_KEY = "provider.profile";
+const PROFILE_KEY = "providerProfile";
 
 // -----------------------------------------------------------------------------
-// MOCK DATA COMPLETA (8 Productos)
+// MOCK DATA COMPLETA (Para inicializar Supabase si está vacío)
 // -----------------------------------------------------------------------------
 const initialProducts = [
   {
-    id: 1,
     sku: "HC20241201001",
     name: "Amoxicilina 250mg",
     category: "Medicamentos",
     subcategory: "Antibióticos",
-    stock: 75,
-    reorderPoint: 30,
-    unitPrice: 0.45,
-    unitPriceWholesale: 0.38,
+    stock_actual: 75,
+    stock_minimal: 30,
+    unit_price: 0.45,
+    unit_price_wholesale: 0.38,
     moq: 50,
     unit: "unidades",
     status: "Activo",
@@ -45,110 +45,33 @@ const initialProducts = [
     supplier: "Farmacéutica Internacional",
   },
   {
-    id: 2,
     sku: "HC20241201002",
     name: "Desinfectante Hospitalario",
     category: "Limpieza y desinfección",
     subcategory: "Desinfectantes",
-    stock: 30,
-    reorderPoint: 15,
-    unitPrice: 8.5,
-    unitPriceWholesale: 7.2,
+    stock_actual: 30,
+    stock_minimal: 15,
+    unit_price: 8.5,
+    unit_price_wholesale: 7.2,
     moq: 6,
     unit: "litros",
     status: "Activo",
     location: "E-1-1",
   },
   {
-    id: 3,
     sku: "HC20241201003",
     name: "Gasas Estériles 10×10cm",
     category: "Material Médico",
     subcategory: "Gasas",
-    stock: 0,
-    reorderPoint: 200,
-    unitPrice: 0.08,
-    unitPriceWholesale: 0.07,
+    stock_actual: 0,
+    stock_minimal: 200,
+    unit_price: 0.08,
+    unit_price_wholesale: 0.07,
     moq: 200,
     unit: "unidades",
     status: "Inactivo",
     location: "C-1-2",
-  },
-  {
-    id: 4,
-    sku: "HC20241201004",
-    name: "Guantes Nitrilo Talla M",
-    category: "Consumibles",
-    subcategory: "Guantes",
-    stock: 1200,
-    reorderPoint: 400,
-    unitPrice: 0.12,
-    unitPriceWholesale: 0.1,
-    moq: 500,
-    unit: "unidades",
-    status: "Activo",
-    location: "B-3-2",
-  },
-  {
-    id: 5,
-    sku: "HC20241201005",
-    name: "Tensiómetro Digital",
-    category: "Equipos",
-    subcategory: "Diagnóstico",
-    stock: 14,
-    reorderPoint: 10,
-    unitPrice: 39.9,
-    unitPriceWholesale: 35.0,
-    moq: 5,
-    unit: "unidades",
-    status: "Activo",
-    location: "EQ-01",
-  },
-  {
-    id: 6,
-    sku: "HC20241201006",
-    name: "Ibuprofeno 600mg",
-    category: "Medicamentos",
-    subcategory: "Antiinflamatorios",
-    stock: 18,
-    reorderPoint: 50,
-    unitPrice: 0.35,
-    unitPriceWholesale: 0.3,
-    moq: 100,
-    unit: "unidades",
-    status: "Activo",
-    location: "A-1-3",
-  },
-  {
-    id: 7,
-    sku: "HC20241201007",
-    name: "Alcohol Isopropílico 70%",
-    category: "Limpieza y desinfección",
-    subcategory: "Desinfectantes",
-    stock: 60,
-    reorderPoint: 40,
-    unitPrice: 3.25,
-    unitPriceWholesale: 2.85,
-    moq: 12,
-    unit: "litros",
-    status: "Activo",
-    location: "E-2-1",
-  },
-  {
-    id: 8,
-    sku: "HC20241201008",
-    name: "Vendas Elásticas 10cm",
-    category: "Material Médico",
-    subcategory: "Vendas",
-    stock: 220,
-    reorderPoint: 150,
-    unitPrice: 0.22,
-    unitPriceWholesale: 0.19,
-    moq: 100,
-    unit: "unidades",
-    status: "Activo",
-    location: "C-2-3",
-  },
+  }
 ];
 
 const normalizeMode = (m) => {
@@ -159,59 +82,32 @@ const normalizeMode = (m) => {
   return "Mixto";
 };
 
-// -----------------------------------------------------------------------------
-// MAPPER: Inventario -> Catálogo
-// -----------------------------------------------------------------------------
-const mapInventoryProductToCatalogItem = (product) => {
-  if (!product) return null;
-
-  return {
-    id: product.id,
-    source: "inventory",
-    sourceId: product.id,
-    code: product.sku || `SKU-${product.id}`,
-    name: product.name,
-    description: product.description || "Descripción pendiente...",
-    category: product.category || "General",
-    subcategory: product.subcategory || "",
-    type: "product",
-    price:
-      typeof product.unitPriceWholesale === "number"
-        ? product.unitPriceWholesale
-        : typeof product.unitPrice === "number"
-        ? product.unitPrice
-        : 0,
-    stock: typeof product.stock === "number" ? product.stock : 0,
-    minStock:
-      typeof product.reorderPoint === "number" ? product.reorderPoint : 0,
-    unit: product.unit || "unidades",
-    moq: typeof product.moq === "number" ? product.moq : 1,
-    supplier: product.supplier || "",
-    targetAudience: "b2b",
-    status: "draft", 
-    publishedAt: null,
-  };
-};
-
-// -----------------------------------------------------------------------------
-// COMPONENTE PRINCIPAL
-// -----------------------------------------------------------------------------
 export default function ProviderInventory() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Cargar Inventario con Persistencia
-  const [products, setProducts] = useState(() => {
-      const saved = localStorage.getItem(INVENTORY_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : initialProducts;
-  });
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Persistir cambios en inventario
+  // Carga inicial desde Supabase
+  const loadData = async () => {
+    setLoading(true);
+    let data = await getProducts();
+    
+    // Si no hay productos, sembrar mock inicial
+    if (data.length === 0) {
+      const { error } = await supabase.from("products").insert(initialProducts);
+      if (!error) data = await getProducts();
+    }
+    
+    setProducts(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(products));
-  }, [products]);
+    loadData();
+  }, []);
 
-  // 2. Lógica de Catálogo B2B
   const [b2bCatalog, setB2bCatalog] = useState([]);
 
   useEffect(() => {
@@ -223,35 +119,6 @@ export default function ProviderInventory() {
     }
   }, []);
 
-  const publishToB2BCatalog = (product) => {
-    if (!product) return;
-
-    const currentCatalogRaw = localStorage.getItem(B2B_CATALOG_STORAGE_KEY);
-    const currentCatalog = currentCatalogRaw ? JSON.parse(currentCatalogRaw) : [];
-
-    const alreadyExists = currentCatalog.some(
-        (item) => item.sourceId === product.id || item.id === product.id
-    );
-
-    if (alreadyExists) {
-        if(confirm(`"${product.name}" ya existe en el catálogo.\n¿Quieres ir al Catálogo para editarlo?`)) {
-            navigate("/provider/b2b/catalog");
-        }
-        return;
-    }
-
-    const newItem = mapInventoryProductToCatalogItem(product);
-    const updatedCatalog = [newItem, ...currentCatalog];
-
-    localStorage.setItem(B2B_CATALOG_STORAGE_KEY, JSON.stringify(updatedCatalog));
-    setB2bCatalog(updatedCatalog);
-
-    if(confirm(`✅ "${product.name}" enviado como BORRADOR.\n¿Quieres ir al Catálogo B2B para activarlo ahora?`)) {
-        navigate("/provider/b2b/catalog");
-    }
-  };
-
-  // ======= Perfil Comercial =======
   const [needsSupplies, setNeedsSupplies] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
@@ -261,7 +128,6 @@ export default function ProviderInventory() {
     businessMode: "Mixto",
   });
 
-  // Cargar perfil
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
@@ -271,31 +137,12 @@ export default function ProviderInventory() {
         if (typeof saved?.needsSupplies === "boolean") setNeedsSupplies(!!saved.needsSupplies);
       }
     } catch {}
-
-    const params = new URLSearchParams(location.search);
-    const modeParam = params.get("mode");
-    if (modeParam) {
-      setFilters((f) => ({ ...f, businessMode: normalizeMode(modeParam) }));
-    }
   }, []);
 
-  // Sincronizar URL y Storage de Perfil
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const current = normalizeMode(params.get("mode"));
-    if (current !== filters.businessMode) {
-      params.set("mode", filters.businessMode);
-      navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-    }
-    localStorage.setItem(PROFILE_KEY, JSON.stringify({ mode: filters.businessMode, needsSupplies }));
-  }, [filters.businessMode, needsSupplies, location.pathname, location.search, navigate]);
-
-  // ======= Selección =======
   const [selectedIds, setSelectedIds] = useState([]);
   const selectOne = (id) => setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   const selectAll = (ids) => setSelectedIds((prev) => (prev.length === ids.length ? [] : [...ids]));
 
-  // ======= Modales =======
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [productModal, setProductModal] = useState({ isOpen: false, product: null, mode: "view" });
   const [historyModal, setHistoryModal] = useState({ isOpen: false, item: null });
@@ -303,16 +150,23 @@ export default function ProviderInventory() {
 
   useEffect(() => setIsBulkPanelOpen(selectedIds.length > 0), [selectedIds]);
 
-  // ======= Normalización =======
-  const normalized = useMemo(() => products.map((p) => {
-    const on_hand = Number(p.stock ?? 0);
-    const reserved = Number(p.reserved ?? 0);
-    const reorder_point = Number(p.reorderPoint ?? 0);
-    const invStatus = deriveStockStatus({ on_hand, reserved, reorder_point });
-    return { ...p, on_hand, reserved, reorder_point, invStatus };
-  }), [products]);
+  // Normalizar datos para los componentes UI que esperan camelCase
+  const normalized = useMemo(() => products.map((p) => ({
+    ...p,
+    stock: p.stock_actual,
+    reorderPoint: p.stock_minimal,
+    unitPrice: p.unit_price,
+    unitPriceWholesale: p.unit_price_wholesale,
+    on_hand: Number(p.stock_actual ?? 0),
+    reserved: Number(p.reserved ?? 0),
+    reorder_point: Number(p.stock_minimal ?? 0),
+    invStatus: deriveStockStatus({ 
+      on_hand: Number(p.stock_actual ?? 0), 
+      reserved: Number(p.reserved ?? 0), 
+      reorder_point: Number(p.stock_minimal ?? 0) 
+    })
+  })), [products]);
 
-  // ======= Filtrado =======
   const filtered = useMemo(() => {
     const q = (filters.search || "").toLowerCase();
     return normalized.filter((p) => {
@@ -327,91 +181,90 @@ export default function ProviderInventory() {
     });
   }, [normalized, filters]);
 
-  // ======= Opciones =======
   const categories = useMemo(() => {
     const s = new Set(["Todas las categorías"]);
     normalized.forEach((p) => p.category && s.add(p.category));
     return Array.from(s);
   }, [normalized]);
 
-  const stockStatuses = ["Todos los estados", "En Stock", "Bajo Stock", "Sin Stock"];
-  const statusOptions = ["Todos", "Activo", "Inactivo", "Descontinuado"];
-
-  const clearFilters = () => setFilters({
-    search: "", category: "Todas las categorías", stockStatus: "Todos los estados", status: "Todos", businessMode: "Mixto",
-  });
-
-  // ======= CRUD =======
   const viewProduct = (product) => setProductModal({ isOpen: true, product, mode: "view" });
   const editProduct = (product) => setProductModal({ isOpen: true, product, mode: "edit" });
   const createProduct = () => setProductModal({ isOpen: true, product: null, mode: "create" });
 
-  const saveProduct = (data) => {
+  const saveProduct = async (data) => {
+    const dbData = {
+      name: data.name,
+      sku: data.sku,
+      category: data.category,
+      subcategory: data.subcategory,
+      stock_actual: Number(data.stock || 0),
+      stock_minimal: Number(data.reorderPoint || 0),
+      unit_price: Number(data.unitPrice || 0),
+      unit_price_wholesale: Number(data.unitPriceWholesale || 0),
+      moq: Number(data.moq || 1),
+      unit: data.unit,
+      status: data.status,
+      location: data.location,
+      description: data.description,
+      supplier: data.supplier
+    };
+
     if (productModal.mode === "create") {
-      setProducts((prev) => [{ id: Date.now(), ...data }, ...prev]);
+      const { error } = await supabase.from("products").insert(dbData);
+      if (error) alert("Error al crear producto");
     } else if (productModal.mode === "edit" && productModal.product) {
-      setProducts((prev) => prev.map((p) => p.id === productModal.product.id ? { ...p, ...data } : p));
+      const { error } = await supabase.from("products").update(dbData).eq("id", productModal.product.id);
+      if (error) alert("Error al editar producto");
     }
+    
     setProductModal({ isOpen: false, product: null, mode: "view" });
+    loadData();
   };
 
-  const deleteProduct = (product) => {
+  const deleteProduct = async (product) => {
     if (!product) return;
     if (!confirm(`¿Eliminar "${product.name}"?`)) return;
-    setProducts((prev) => prev.filter((p) => p.id !== product.id));
+    await supabase.from("products").delete().eq("id", product.id);
+    loadData();
     setSelectedIds((prev) => prev.filter((id) => id !== product.id));
   };
 
-  const changeStockInline = (id, value) => setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, stock: Number(value || 0) } : p)));
+  const changeStockInline = async (id, value) => {
+    await supabase.from("products").update({ stock_actual: Number(value || 0) }).eq("id", id);
+    loadData();
+  };
 
-  // ======= CSV EXPORT =======
+  const handleResetDemo = async () => {
+      if(confirm("Esto borrará los datos en Supabase y restaurará el inventario inicial. ¿Continuar?")) {
+          setLoading(true);
+          await supabase.from("lots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabase.from("products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabase.from("products").insert(initialProducts);
+          await loadData();
+      }
+  };
+
   const exportCSV = () => {
-    const isB2B = filters.businessMode === "B2B";
-    const isB2C = filters.businessMode === "B2C";
     const isMix = filters.businessMode === "Mixto";
-
-    const headers = [
-      "SKU", "Producto", "Categoría", "Stock", "Nivel mínimo",
-      ...(isB2C || isMix ? ["Precio Unitario (USD)"] : []),
-      ...(isB2B || isMix ? ["Precio Mayorista (USD)", "MOQ"] : []),
-      "Estado", "Modo", "Compras",
-    ];
-
-    const rows = filtered.map((p) => {
-      const wholesale = Number(p.unitPriceWholesale ?? (p.unitPrice != null ? p.unitPrice * 0.85 : 0));
-      const moq = Number(p.moq ?? 10);
-      const base = [p.sku || "", p.name, p.category || "", p.on_hand ?? 0, p.reorder_point ?? 0];
-      const b2cCols = isB2C || isMix ? [Number(p.unitPrice ?? 0)] : [];
-      const b2bCols = isB2B || isMix ? [wholesale, moq] : [];
-      const tail = [p.status || "Activo", filters.businessMode, needsSupplies ? "ON" : "OFF"];
-      return [...base, ...b2cCols, ...b2bCols, ...tail];
-    });
-
+    const headers = ["SKU", "Producto", "Categoría", "Stock", "Nivel mínimo", "Estado"];
+    const rows = filtered.map((p) => [p.sku || "", p.name, p.category || "", p.on_hand ?? 0, p.reorder_point ?? 0, p.status || "Activo"]);
     const csv = headers.join(",") + "\n" + rows.map((r) => r.map((x) => `"${x ?? ""}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `inventario_${filters.businessMode.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `inventario_supabase_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // ======= Reset Data (FIX) =======
-  const handleResetDemo = () => {
-      if(confirm("Esto borrará los cambios locales y restaurará los 8 productos originales. ¿Continuar?")) {
-          localStorage.removeItem(INVENTORY_STORAGE_KEY);
-          window.location.reload();
-      }
-  };
-
-  // ======= Bulk Actions =======
   const categoryOptionsForBulk = useMemo(() => categories.filter((c) => c !== "Todas las categorías").map((c) => ({ label: c, value: c })), [categories]);
 
-  const handleBulkAction = async (actionId, payload) => {
+  const handleBulkAction = async (actionId) => {
     if (actionId === "activate" || actionId === "deactivate") {
         const newStatus = actionId === "activate" ? "Activo" : "Inactivo";
-        setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, status: newStatus } : p));
+        await supabase.from("products").update({ status: newStatus }).in("id", selectedIds);
+        loadData();
     }
     if (actionId === "export") exportCSV();
     setSelectedIds([]);
@@ -422,33 +275,28 @@ export default function ProviderInventory() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <Breadcrumb items={[{ label: "Inicio", href: "/" }, { label: "Gestión de Inventario" }]} />
-      <h1 className="text-2xl font-semibold mt-2 mb-1">Gestión de Inventario</h1>
-      <p className="text-sm text-gray-500 mb-6">Administra tu stock y publica productos hacia tu catálogo B2B.</p>
-
-      {/* Selector Perfil */}
-      <div className="mb-4">
-        <BusinessProfileSelector
-          valueMode={filters.businessMode}
-          valueNeedsSupplies={needsSupplies}
-          onChangeMode={(m) => setFilters((f) => ({ ...f, businessMode: m }))}
-          onChangeNeedsSupplies={setNeedsSupplies}
-          persistKey={PROFILE_KEY}
-        />
+      <div className="flex justify-between items-end mt-2 mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1">Gestión de Inventario</h1>
+          <p className="text-sm text-gray-500">
+            {loading ? "Sincronizando con Supabase..." : "Datos sincronizados con la nube."}
+          </p>
+        </div>
+        <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetDemo}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Resetear Todo (DB)
+        </Button>
       </div>
 
-      {/* Filtros */}
+      <div className="mb-4">
+        <BusinessProfileSelector valueMode={filters.businessMode} valueNeedsSupplies={needsSupplies} onChangeMode={(m) => setFilters((f) => ({ ...f, businessMode: m }))} onChangeNeedsSupplies={setNeedsSupplies} persistKey={PROFILE_KEY} />
+      </div>
+
       <div className="bg-white border rounded-lg p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="flex-1 w-full">
                 <Input placeholder="Buscar por nombre o SKU..." value={filters.search} onChange={e => setFilters({...filters, search: e.target.value})} icon="Search" />
             </div>
-            
             <div className="flex items-center gap-2">
-                {/* BOTÓN RESET NUEVO */}
-                <Button variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetDemo}>
-                    <RefreshCw className="w-4 h-4 mr-2" /> Resetear Demo
-                </Button>
-
                 <Button variant="outline" onClick={() => setIsBulkUploadModalOpen(true)}>
                     <Upload className="w-4 h-4 mr-2" /> Importar
                 </Button>
@@ -462,22 +310,18 @@ export default function ProviderInventory() {
         </div>
       </div>
 
-      {/* Tabla */}
-      <InventoryTable
-        products={filtered}
-        selectedProducts={selectedIds}
-        onSelectProduct={selectOne}
-        onSelectAll={() => selectAll(visibleIds)}
-        onChangeStock={changeStockInline}
-        onViewProduct={viewProduct}
-        onEditProduct={editProduct}
-        onDeleteProduct={deleteProduct}
-        businessMode={filters.businessMode}
-        onPublishToB2BCatalog={publishToB2BCatalog}
-      />
+      {loading ? (
+        <div className="h-64 flex items-center justify-center border rounded-lg bg-gray-50">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
+            <p className="text-gray-500">Cargando inventario desde Supabase...</p>
+          </div>
+        </div>
+      ) : (
+        <InventoryTable products={filtered} selectedProducts={selectedIds} onSelectProduct={selectOne} onSelectAll={() => selectAll(visibleIds)} onChangeStock={changeStockInline} onViewProduct={viewProduct} onEditProduct={editProduct} onDeleteProduct={deleteProduct} businessMode={filters.businessMode} />
+      )}
 
-      {/* Modales */}
-      <BulkUploadModal isOpen={isBulkUploadModalOpen} onClose={() => setIsBulkUploadModalOpen(false)} onUploadComplete={(items) => setProducts((prev) => [...items, ...prev])} />
+      <BulkUploadModal isOpen={isBulkUploadModalOpen} onClose={() => setIsBulkUploadModalOpen(false)} onUploadComplete={loadData} />
       <ProductModal isOpen={productModal.isOpen} product={productModal.product} mode={productModal.mode} onClose={() => setProductModal({ isOpen: false, product: null, mode: "view" })} onSave={saveProduct} onRequestEdit={() => setProductModal((m) => ({ ...m, mode: "edit" }))} onRequestHistory={() => setHistoryModal({ isOpen: true, item: productModal.product })} />
       <MovementHistoryModal isOpen={historyModal.isOpen} item={historyModal.item} onClose={() => setHistoryModal({ isOpen: false, item: null })} />
       <BulkActionsPanel isVisible={isBulkPanelOpen} selectedCount={selectedIds.length} onClose={() => setSelectedIds([])} onAction={handleBulkAction} categoryOptions={categoryOptionsForBulk} />

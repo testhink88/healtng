@@ -1,7 +1,94 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '@/components/AppIcon';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import { supabase } from '@/lib/supabase';
 
-const PersonalInfo = ({ patient }) => {
+const PersonalInfo = ({ patient, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: patient?.fullName || '',
+    dni: patient?.dni || '',
+    dateOfBirth: patient?.dateOfBirth || '',
+    gender: patient?.gender || '',
+    bloodType: patient?.bloodType || '',
+    phone: patient?.phone || '',
+    email: patient?.email || '',
+    address: patient?.address || '',
+    emergencyName: patient?.emergencyContact?.name || '',
+    emergencyRel: patient?.emergencyContact?.relationship || '',
+    emergencyPhone: patient?.emergencyContact?.phone || '',
+  });
+
+  // Sync state if patient prop changes (after fetch or update)
+  React.useEffect(() => {
+    setFormData({
+      fullName: patient?.fullName || '',
+      dni: patient?.dni || '',
+      dateOfBirth: patient?.dateOfBirth || '',
+      gender: patient?.gender || '',
+      bloodType: patient?.bloodType || '',
+      phone: patient?.phone || '',
+      email: patient?.email || '',
+      address: patient?.address || '',
+      emergencyName: patient?.emergencyContact?.name || '',
+      emergencyRel: patient?.emergencyContact?.relationship || '',
+      emergencyPhone: patient?.emergencyContact?.phone || '',
+    });
+  }, [patient]);
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Saving patient metadata:", patient.id, formData);
+      
+      // Construir el objeto de metadatos actualizado
+      const updatedMetadata = {
+        ...(patient.metadata || {}),
+        document_id: formData.dni,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        blood_type: formData.bloodType,
+        phone: formData.phone,
+        address: formData.address,
+        emergency_contact: {
+          name: formData.emergencyName,
+          relationship: formData.emergencyRel,
+          phone: formData.emergencyPhone
+        }
+      };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.fullName,
+          metadata: updatedMetadata
+        })
+        .eq('id', patient.id)
+        .select();
+
+      if (error) {
+        console.error("Supabase error detail:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error("No se actualizó ninguna fila. Verifica que tengas permisos (RLS) para editar este paciente.");
+      }
+
+      console.log("Update success:", data);
+      setIsEditing(false);
+      if (onUpdate) await onUpdate(); // Asegurar que esperamos la actualización
+    } catch (err) {
+      console.error("Error updating patient info:", err);
+      alert(`Error al guardar: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'No disponible';
     const date = new Date(dateString);
@@ -26,40 +113,109 @@ const PersonalInfo = ({ patient }) => {
     return colors?.[bloodType] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const inputClass = "bg-muted border-border focus:ring-primary/20";
+
   return (
     <div className="p-6 space-y-6">
       {/* Basic Information */}
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-          <Icon name="User" size={20} className="mr-2" />
-          Información Básica
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground flex items-center">
+            <Icon name="User" size={20} className="mr-2" />
+            Información Básica
+          </h3>
+          {!isEditing ? (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} iconName="Edit2">
+              Editar Información
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isLoading}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSave} loading={isLoading} iconName="Save">
+                Guardar Cambios
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Nombre Completo</label>
-            <p className="text-foreground font-medium">{patient?.fullName}</p>
+            {isEditing ? (
+              <Input 
+                value={formData.fullName} 
+                onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{patient?.fullName}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Documento de Identidad</label>
-            <p className="text-foreground font-medium">{patient?.dni}</p>
+            {isEditing ? (
+              <Input 
+                value={formData.dni} 
+                onChange={(e) => setFormData({...formData, dni: e.target.value})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{patient?.dni}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Fecha de Nacimiento</label>
-            <p className="text-foreground font-medium">{formatDate(patient?.dateOfBirth)}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-muted-foreground">Edad</label>
-            <p className="text-foreground font-medium">{patient?.age} años</p>
+            {isEditing ? (
+              <Input 
+                type="date"
+                value={formData.dateOfBirth} 
+                onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{formatDate(patient?.dateOfBirth)}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Género</label>
-            <p className="text-foreground font-medium">{patient?.gender}</p>
+            {isEditing ? (
+              <Select
+                options={[
+                  { label: "Masculino", value: "Masculino" },
+                  { label: "Femenino", value: "Femenino" },
+                  { label: "Otro", value: "Otro" }
+                ]}
+                value={formData.gender}
+                onChange={(val) => setFormData({...formData, gender: val})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{patient?.gender}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Grupo Sanguíneo</label>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getBloodTypeColor(patient?.bloodType)}`}>
-              {patient?.bloodType}
-            </span>
+            {isEditing ? (
+              <Select
+                options={[
+                  { label: "O+", value: "O+" }, { label: "O-", value: "O-" },
+                  { label: "A+", value: "A+" }, { label: "A-", value: "A-" },
+                  { label: "B+", value: "B+" }, { label: "B-", value: "B-" },
+                  { label: "AB+", value: "AB+" }, { label: "AB-", value: "AB-" }
+                ]}
+                value={formData.bloodType}
+                onChange={(val) => setFormData({...formData, bloodType: val})}
+                className={inputClass}
+              />
+            ) : (
+              <div>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getBloodTypeColor(patient?.bloodType)}`}>
+                  {patient?.bloodType || 'N/A'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -70,10 +226,18 @@ const PersonalInfo = ({ patient }) => {
           <Icon name="Phone" size={20} className="mr-2" />
           Información de Contacto
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Teléfono</label>
-            <p className="text-foreground font-medium">{patient?.phone}</p>
+            {isEditing ? (
+              <Input 
+                value={formData.phone} 
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{patient?.phone}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Email</label>
@@ -81,7 +245,15 @@ const PersonalInfo = ({ patient }) => {
           </div>
           <div className="md:col-span-2 space-y-1">
             <label className="text-sm font-medium text-muted-foreground">Dirección</label>
-            <p className="text-foreground font-medium">{patient?.address}</p>
+            {isEditing ? (
+              <Input 
+                value={formData.address} 
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className={inputClass}
+              />
+            ) : (
+              <p className="text-foreground font-medium">{patient?.address}</p>
+            )}
           </div>
         </div>
       </div>
@@ -142,19 +314,43 @@ const PersonalInfo = ({ patient }) => {
           <Icon name="AlertCircle" size={20} className="mr-2" />
           Contacto de Emergencia
         </h3>
-        <div className="bg-muted/50 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-muted ring-1 ring-border rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Nombre</label>
-              <p className="text-foreground font-medium">{patient?.emergencyContact?.name}</p>
+              {isEditing ? (
+                <Input 
+                  value={formData.emergencyName} 
+                  onChange={(e) => setFormData({...formData, emergencyName: e.target.value})}
+                  className={inputClass}
+                />
+              ) : (
+                <p className="text-foreground font-medium">{patient?.emergencyContact?.name || '---'}</p>
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Relación</label>
-              <p className="text-foreground font-medium">{patient?.emergencyContact?.relationship}</p>
+              {isEditing ? (
+                <Input 
+                  value={formData.emergencyRel} 
+                  onChange={(e) => setFormData({...formData, emergencyRel: e.target.value})}
+                  className={inputClass}
+                />
+              ) : (
+                <p className="text-foreground font-medium">{patient?.emergencyContact?.relationship || '---'}</p>
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Teléfono</label>
-              <p className="text-foreground font-medium">{patient?.emergencyContact?.phone}</p>
+              {isEditing ? (
+                <Input 
+                  value={formData.emergencyPhone} 
+                  onChange={(e) => setFormData({...formData, emergencyPhone: e.target.value})}
+                  className={inputClass}
+                />
+              ) : (
+                <p className="text-foreground font-medium">{patient?.emergencyContact?.phone || '---'}</p>
+              )}
             </div>
           </div>
         </div>

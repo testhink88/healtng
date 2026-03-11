@@ -2,6 +2,12 @@ import React from 'react';
 import Icon from '@/components/AppIcon';
 
 const MedicalHistory = ({ patient, onShowDetails }) => {
+  const formatDate = (v) => {
+    if (!v) return "—";
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? "—" : d.toLocaleDateString('es-VE', { day:'2-digit', month:'short', year:'numeric' });
+  };
+
   const diagnoses = [...(patient?.diagnoses || [])].sort((a, b) => 
     new Date(b.date) - new Date(a.date)
   );
@@ -34,14 +40,16 @@ const MedicalHistory = ({ patient, onShowDetails }) => {
               <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-400 transition-all">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-gray-900">{diag.specialtyName}</h4>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        {new Date(diag.date).toLocaleDateString('es-VE')}
-                      </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                       <h4 className="font-bold text-gray-900">{diag.specialtyName}</h4>
+                       <span className="hidden sm:inline text-gray-300">•</span>
+                       <span className="text-[10px] text-gray-400 font-medium">
+                         {formatDate(diag.date)}
+                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      <span className="font-semibold">Dx:</span> {diag.preview}
+                    <p className="text-xs text-blue-600 font-medium mt-0.5">{diag.doctorName}</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      <span className="font-semibold text-gray-400">Dx:</span> {diag.preview}
                     </p>
                   </div>
                   <Icon name="ChevronRight" size={18} className="text-gray-300 group-hover:text-blue-600 transition-colors" />

@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
  * - timeline: [{ time:'09:00', left?:'María G.', right?:'Carlos R.', slot?:'Disponible'|'Descanso' }]
  * - monthLabel: "Agosto - Septiembre 2025"
  */
-const UpcomingSchedule = ({ weekPills = [], timeline = [], monthLabel = "", className = "" }) => {
+const UpcomingSchedule = ({ weekPills = [], timeline = [], monthLabel = "", onEditAppointment, className = "" }) => {
   return (
     <div className={`bg-card rounded-lg border border-border ${className}`}>
       {/* Header */}
@@ -80,12 +80,13 @@ const UpcomingSchedule = ({ weekPills = [], timeline = [], monthLabel = "", clas
                     {row.slot}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="h-9 rounded-md border border-border bg-background text-sm px-3 text-left hover:bg-accent transition-colors">
-                      {row.left || ""}
-                    </button>
-                    <button className="h-9 rounded-md border border-border bg-background text-sm px-3 text-left hover:bg-accent transition-colors">
-                      {row.right || ""}
+                  <div className="grid grid-cols-1 gap-2">
+                    <button 
+                      onClick={() => onEditAppointment && onEditAppointment(row.appointment)}
+                      className="h-9 rounded-md border border-border bg-background text-sm px-3 text-left hover:bg-accent transition-colors flex items-center justify-between group"
+                    >
+                      <span className="truncate">{row.patientName || ""}</span>
+                      <Icon name="Edit2" size={12} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   </div>
                 )}

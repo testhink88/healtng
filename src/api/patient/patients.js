@@ -6,35 +6,94 @@ const client = createMockClient("healtng_patients_v1", {
 });
 
 export async function fetchPatients(filters = {}) {
-  const { q, city } = filters;
-  return client.list((p) => {
-    let ok = true;
+  const { q, professional_id } = filters;
+
+  try {
+    let query = supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'patient');
+
     if (q) {
-      const haystack = `${p.full_name} ${p.email} ${p.document_id}`.toLowerCase();
-      ok = ok && haystack.includes(String(q).toLowerCase());
+      query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
     }
-    if (city) {
-      ok = ok && String(p.city || "").toLowerCase().includes(String(city).toLowerCase());
+
+    if (professional_id) {
+      // Si queremos SOLO los que tienen cita con este doctor:
+      // Nota: Supabase solo permite este tipo de filtrado complejo via rpc o vistas si no hay relación directa simple.
+      // Por ahora, usaremos una subconsulta lógica: obtener IDs de pacientes con citas.
+      const { data: apts } = await supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('professional_id', professional_id);
+      
+      const patientIds = [...new Set(apts?.map(a => a.patient_id).filter(id => !!id))];
+      
+      if (patientIds.length === 0) return [];
+      query = query.in('id', patientIds);
     }
-    return ok;
-  });
+
+    const { data, error } = await query.order('full_name', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching patients:", error);
+    return [];
+  }
 }
 
-export const getPatientById = (id) => client.get(id);
-export const createPatient = (payload) => client.create(payload);
-export const updatePatient = (id, patch) => client.update(id, patch);
-export const deletePatient = (id) => client.remove(id);
+export async function getPatientById(id) {
+  if (!id) return null;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-// Funciones adicionales, como las de dashboard, se mantienen igual pero vacías.
-export async function fetchPatientDashboardSummary(patientId) {
-  return {
-    patient_id: patientId,
-    upcoming_appointments: 0,
-    active_orders: 0,
-    last_diagnostic_at: null,
-  };
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error fetching patient by id:", error);
+    return null;
+  }
 }
 
+import { supabase } from "../../lib/supabase";
+
+/**
+ * FETCH CLINICAL HISTORY FOR PATIENT
+ */
 export async function fetchPatientHistory(patientId) {
-  return [];
+  if (!patientId) return { diagnoses: [], treatments: [], encounters: [] };
+
+  try {
+    const [diagnoses, treatments, encounters] = await Promise.all([
+      supabase
+        .from('diagnoses')
+        .select('*, doctor:profiles!diagnoses_doctor_id_fkey(*)')
+        .eq('patient_id', patientId)
+        .order('diagnosis_date', { ascending: false }),
+      supabase
+        .from('treatments')
+        .select('*, doctor:profiles!treatments_doctor_id_fkey(*)')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('encounters')
+        .select('*, doctor:profiles!encounters_doctor_id_fkey(*)')
+        .eq('patient_id', patientId)
+        .order('started_at', { ascending: false })
+    ]);
+
+    return {
+      diagnoses: diagnoses.data || [],
+      treatments: treatments.data || [],
+      encounters: encounters.data || []
+    };
+  } catch (error) {
+    console.error("Error fetching patient medical history:", error);
+    return { diagnoses: [], treatments: [], encounters: [] };
+  }
 }

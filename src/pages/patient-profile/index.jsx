@@ -13,12 +13,25 @@ import PrescriptionsTab from "@/pages/patient-profile/components/PrescriptionsTa
 import AppointmentsTab from "@/pages/patient-profile/components/AppointmentsTab";
 
 import ConsultationDetailsModal from "@/components/patient/ConsultationDetailsModal";
-import { MOCK_PATIENTS } from "@/mock/patients";
+import { getPatientById, fetchPatientHistory } from "@/api/patient/patients";
+import { fetchAppointmentsByPatient } from "@/api/appointments";
 
 const formatDateVE = (v) => {
   if (!v) return "—";
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-VE");
+};
+
+const calculateAge = (birthday) => {
+  if (!birthday) return "??";
+  const birthDate = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : "??";
 };
 
 const PatientProfile = () => {
@@ -33,6 +46,7 @@ const PatientProfile = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [patient, setPatient] = useState(null);
+  const [appointments, setAppointments] = useState([]);
   const [activeTab, setActiveTab] = useState("medical");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,27 +59,63 @@ const PatientProfile = () => {
     { key: "personal", label: "Información Personal", icon: "User" },
   ];
 
-  useEffect(() => {
+  const loadPatientData = async () => {
     setIsLoading(true);
+    try {
+      const profileData = await getPatientById(id);
+      if (!profileData) {
+        setPatient(null);
+        return;
+      }
 
-    const locals = JSON.parse(localStorage.getItem("MOCK_PATIENTS") || "[]");
-    const localMatch = locals.find((p) => String(p.id) === String(id));
-    const mockMatch = (MOCK_PATIENTS || []).find((p) => String(p.id) === String(id));
+      const history = await fetchPatientHistory(id);
+      const apts = await fetchAppointmentsByPatient(id);
 
-    const data = localMatch || mockMatch;
-
-    if (data) {
       setPatient({
-        ...data,
-        fullName: data.name || data.fullName,
-        dni: data.docId || data.dni,
-        status: data.status || "active",
+        ...profileData,
+        id: profileData.id,
+        fullName: profileData.full_name,
+        dni: profileData.metadata?.document_id || profileData.metadata?.dni || "---",
+        age: profileData.metadata?.age || calculateAge(profileData.metadata?.date_of_birth),
+        gender: profileData.metadata?.gender || "No definido",
+        dateOfBirth: profileData.metadata?.date_of_birth || "",
+        bloodType: profileData.metadata?.blood_type || "",
+        address: profileData.metadata?.address || "",
+        emergencyContact: profileData.metadata?.emergency_contact || {},
+        insurance: profileData.metadata?.insurance || {},
+        lastVisit: profileData.metadata?.last_visit_at,
+        status: "active",
+        diagnoses: (history.diagnoses || []).map(d => ({
+          ...d,
+          date: d.diagnosis_date || d.created_at,
+          specialtyName: d.metadata?.specialty_code || "Medicina General",
+          preview: d.condition || "Consulta Médica",
+          doctorName: d.doctor?.full_name || "Médico",
+          // Adaptar metadata para el modal de detalles
+          data: {
+             ...d.metadata,
+             ...d.metadata?.full_data, // Expandir datos guardados en el formulario
+             clinical_findings: d.findings || d.metadata?.full_data?.physical_exam,
+             treatment_plan: d.plan || d.metadata?.full_data?.plan,
+             prescriptions: d.metadata?.full_data?.prescriptions || d.metadata?.prescriptions || []
+          }
+        })),
+        treatments: history.treatments || [],
+        encounters: history.encounters || [],
+        email: profileData.email,
+        phone: profileData.metadata?.phone || "Sin teléfono"
       });
-    } else {
+      setAppointments(apts || []);
+    } catch (err) {
+      console.error("Error loading patient profile:", err);
       setPatient(null);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    setIsLoading(false);
+  useEffect(() => {
+    if (id) loadPatientData();
   }, [id, location.key]);
 
   const handleOpenConsultation = (diagId) => {
@@ -153,7 +203,7 @@ const PatientProfile = () => {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                           <span className="text-primary font-medium">{patient.dni}</span>
                           <span>•</span>
-                          <span>{patient.age} años</span>
+                          <span>{patient.age === "??" ? "N/D" : `${patient.age} años`}</span>
                           <span>•</span>
                           <span className="capitalize">{patient.gender}</span>
                         </div>
@@ -200,11 +250,16 @@ const PatientProfile = () => {
                     <PrescriptionsTab patient={patient} onOpenConsultation={handleOpenConsultation} />
                   )}
 
-                  {activeTab === "appointments" && (
-                    <AppointmentsTab patient={patient} onOpenConsultation={handleOpenConsultation} />
+                   {activeTab === "appointments" && (
+                    <AppointmentsTab 
+                      patient={patient} 
+                      allAppointments={appointments} 
+                      onUpdate={loadPatientData}
+                      onOpenConsultation={handleOpenConsultation} 
+                    />
                   )}
 
-                  {activeTab === "personal" && <PersonalInfo patient={patient} />}
+                  {activeTab === "personal" && <PersonalInfo patient={patient} onUpdate={loadPatientData} />}
                 </div>
               </div>
             </div>
